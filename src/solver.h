@@ -25,7 +25,7 @@ public:
 
 	// *****************************************************************************
 	//Chemical parameters
-	#include "../Standard_Version/parameters.h"
+	#include "parameters.h"
 	//The definition of the Parameters array, including "nSi, nMg, nO, ...."
 	//is moved to the automatically generated file "parameters,h" and included here
 	// *****************************************************************************

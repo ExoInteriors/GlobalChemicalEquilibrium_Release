@@ -28,19 +28,24 @@ file = sys.argv[1]
 
 
 #filename of the Equations.py file 
-filename = file.split(".py")[0]
+filename = file.split("/")[-1]
+filename = filename.split(".py")[0]
 
+path = os.getcwd()
+print("path", path)
+print("module name", filename)
 
 #check if Equations.py file exists
 if(os.path.isfile(file) == False):
 	print("Error, file %s does not exist." % file)
 	exit()
 
+
+sys.path.append(path)
+
+
 #import Equations file with the name given as console argument
 Equations = importlib.import_module(filename)
-
-
-
 
 print("Using chemical network equations from file %s.py" % filename)
 print("")
