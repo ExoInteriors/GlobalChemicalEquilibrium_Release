@@ -15,12 +15,22 @@ void solver::allocate(){
 	logbound_min = (double*)malloc(Ndim * sizeof(double));
 	logbound_max = (double*)malloc(Ndim * sizeof(double));
 
+	//set prior and boundaries to a negative value to check
+	//if they are given in the chem_input file.
 	for(int i = 0; i < Ndim; ++i){
-		prior_min[i] = 0.0;
-		prior_max[i] = 0.0;
-		bound_min[i] = 0.0;
-		bound_max[i] = 0.0;
+		prior_min[i] = LARGE;
+		prior_max[i] = LARGE;
+		bound_min[i] = LARGE;
+		bound_max[i] = LARGE;
 	}
+	for(int i = 0; i < nGRT; ++i){
+		GRT_T[i] = LARGE;
+	}
+
+	for(int i = 0; i < nParameters; ++i){
+		Parameters[i] = LARGE;
+	}
+	
 	
 	P = (double*)malloc(N * sizeof(double));
 	CTOT = (double*)malloc(N * sizeof(double));
@@ -92,10 +102,12 @@ int solver::readcheminput(){
 
 	char skip[8];
 	int er; 
-	int pCount = 0;
-	int gCount = 0;
+	int parameterCount = 0;
+	int grtCount = 0;
+	int boundariesCount = 0;
+	int priorsCount = 0;
 
-	for(int j = 0; j < 1000; ++j){ //loop around all lines in the param.dat file
+	for(int j = 0; j < 1000; ++j){ //loop around all lines in the chem_input.dat file
 		int c;
 		for(int i = 0; i < 50; ++i){
 			c = fgetc(paramfile);
@@ -129,7 +141,7 @@ int solver::readcheminput(){
 				}
 				if(fgets(sp, 3, paramfile) != nullptr)
 				fg = 1;
-				++gCount;
+				++grtCount;
 			}
 		}
 		if(fg == 1) continue;
@@ -148,12 +160,12 @@ int solver::readcheminput(){
 				}
 				if(fgets(sp, 3, paramfile) != nullptr)
 				fp = 1;
-				++pCount;
+				++parameterCount;
 			}
 		}
 		if(fp == 1) continue;
 
-		//Read Bound array
+		//Read Boundaries array
 		int fbound = 0;
 		for(int p = 0; p < Ndim; ++p){
 			sprintf(st, "bound_%s =", VariableNames[p].c_str());
@@ -162,12 +174,13 @@ int solver::readcheminput(){
 //printf("%s %g %g| %d\n", st, bound_min[p], bound_max[p], p);
 				logbound_min[p] = log(bound_min[p]);
 				logbound_max[p] = log(bound_max[p]);
-				if(er <= 0){
-					printf("Error: bound_%d is not valid!\n", p);
+				if(er <= 0 || bound_min[p] < 0.0 || bound_max[p] < 0.0){
+					printf("Error: bound_%s is not valid!\n", VariableNames[p].c_str());
 					return 0;
 				}
 				if(fgets(sp, 3, paramfile) != nullptr)
 				fbound = 1;
+				++boundariesCount;
 			}
 		}
 		if(fbound == 1) continue;
@@ -179,12 +192,13 @@ int solver::readcheminput(){
 			if(strcmp(sp, st) == 0){
 				er = fscanf (paramfile, "%lf %s %lf", &prior_min[p], skip, &prior_max[p]);
 //printf("%s %g %g| %d\n", st, prior_min[p], prior_max[p], p);
-				if(er <= 0){
-					printf("Error: prior_%d is not valid!\n", p);
+				if(er <= 0 || prior_min[p] < 0.0 || prior_max[p] < 0.0){
+					printf("Error: prior_%s is not valid!\n", VariableNames[p].c_str());
 					return 0;
 				}
 				if(fgets(sp, 3, paramfile) != nullptr)
 				fprior = 1;
+				++priorsCount;
 			}
 		}
 		if(fprior == 1) continue;
@@ -194,17 +208,104 @@ int solver::readcheminput(){
 		return 0;
 	}
 	fclose(paramfile);
-	if(pCount != nParameters){
+
+
+	if(parameterCount != nParameters){
 		printf("Error, number of parameters in chem_input.dat file does not agree with nParameters\n");	
 		return 0;
 	}
-	if(gCount != nGRT){
+	if(grtCount != nGRT){
 		printf("Error, number of GRT terms in chem_input.dat file does not agree with nGRT\n");	
 		return 0;
+	}
+	if(boundariesCount != Ndim){
+		printf("Error, number of bondaries in chem_input.dat file does not agree with number of variables\n");	
+		return 0;
+	}
+	if(priorsCount != Ndim){
+		printf("Error, number of priors in chem_input.dat file does not agree with number of variables\n");	
+		return 0;
+	}
+
+	//Check if all GRT values are set
+	for(int i = 0; i < nGRT; ++i){
+		if(GRT_T[i] == LARGE){
+			printf("Error, value for GRT %d not set in chem_input.dat file\n", i);
+			return 0;
+
+		}
+	}
+
+	//Check if all Parameters values are set
+	for(int i = 0; i < nParameters; ++i){
+		if(Parameters[i] == LARGE){
+			printf("Error, value for Parameter %s not set in chem_input.dat file\n", ParameterNames[i].c_str());
+			return 0;
+
+		}
+	}
+
+	//Check if all priors and boundaries are set
+	for(int i = 0; i < Ndim; ++i){
+		if(bound_min[i] == LARGE || bound_max[i] == LARGE){
+
+			printf("Error, boudaries for %s not set in chem_input.dat file\n", VariableNames[i].c_str());
+			return 0;
+
+		}
+		if(prior_min[i] == LARGE || prior_max[i] == LARGE){
+
+			printf("Error, priors for %s not set in chem_input.dat file\n", VariableNames[i].c_str());
+			return 0;
+
+		}
 	}
 
 
 	printf("End reading chemical inputfile\n");
+
+
+
+	FILE *outfile;
+	outfile = fopen(outputFilename, "r"); // Check if output file exists already
+	if(outfile == NULL){
+		//File does not exist, add header information
+		outfile = fopen(outputFilename, "w");
+		fprintf(outfile, "#iteration chain chi^2 ");
+		for(int i = 0; i < Ndim; ++i){
+			fprintf(outfile, "%s ", VariableNames[i].c_str()); 
+		}
+		fprintf(outfile, "\n");
+		fclose(outfile);
+	}
+	else{
+		//File exists already
+		char header[160];
+		int er;
+		for(int i = 0; i < 3; ++i){
+			er = fscanf(outfile, "%s", header);
+			if(er <= 0){
+				printf("Error in reading the header of the output file\n");
+				return 0;
+			}
+		}
+		for(int i = 0; i < Ndim; ++i){
+			er = fscanf(outfile, "%s", header);
+			if(er <= 0){
+				printf("Error in reading the header of the output file\n");
+				return 0;
+			}
+			int check = strcmp(header, VariableNames[i].c_str());
+			if(check != 0){
+				printf("Error, the header of the output file does not match the current variables\n");
+				printf("%s %s\n", header, VariableNames[i].c_str());
+				return 0;
+			}
+		}
+		fclose(outfile);
+	}
+
+
 	return 1;
 }
 

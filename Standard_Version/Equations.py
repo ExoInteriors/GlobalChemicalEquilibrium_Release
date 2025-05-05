@@ -14,7 +14,7 @@ from sympy import log, exp, ccode
 # *****************************************************************************************************************
 #    SECTION 1    *************************************************************************************************
 # *****************************************************************************************************************
-# Set the number of equations in nGRT
+# Set the number of chemical reaction equations in nGRT
 # List all included species, the names must contain the phases '_silicate', '_metal', or '_gas'.
 # List all additional variables
 # At the end the array 'var' contains all user variables, these are the space component fractions and the
@@ -311,18 +311,18 @@ gas_count = 0
 print('Silicate species: ')
 for s in species:
 	if("_silicate" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		silicate_count += 1
 
 print('Metal species: ')
 for s in species:
 	if("_metal" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		metal_count += 1
 print('Gas species: ')
 for s in species:
 	if("_gas" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		gas_count += 1
 
 if(silicate_count + metal_count + gas_count != len(species)):

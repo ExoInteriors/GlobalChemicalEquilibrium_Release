@@ -11,6 +11,8 @@
 
 #include <ctime>	// Required for seeding the random number generator
 
+
+
 // *****************************************************************************************
 // Author: Simon Grimm
 // Date: February 2025
@@ -95,6 +97,8 @@ public:
 	double *values;
 	double *logvalues;
 
+
+	double LARGE = -1e-30;
 
 
 	void allocate();
