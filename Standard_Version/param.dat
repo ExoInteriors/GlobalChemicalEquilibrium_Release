@@ -1,6 +1,6 @@
 # General parameters
 Initial conditions file = -
-Output file = output5.dat
+Output file = output.dat
 outputInterval = 10000
 Nwalker = 100
 nSteps = 150000
