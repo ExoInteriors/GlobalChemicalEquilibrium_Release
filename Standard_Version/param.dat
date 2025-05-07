@@ -1,13 +1,13 @@
+# General parameters
 Initial conditions file = -
-Output file = output.dat
+Output file = output5.dat
+outputInterval = 10000
 Nwalker = 100
 nSteps = 150000
 nIterations = 2
 nBestSolutions = 1
-outputInterval = 10000
 method = 2
-Use svgd = 0
-f1 = 1.0
-f2 = 1.0
+
+# Adam solver parameters
 eta = 0.4
-lambda_reg = 0.000
+lambda_reg = 0.0001

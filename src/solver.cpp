@@ -341,6 +341,12 @@ int solver::readParam(){
 				sp[i + 1] = '\0';
 				break;
 			}
+			if(c == '\n'){
+				//blank line
+				i = -1;
+				continue;
+			}
+
 		}
 		if(c == EOF) break;
 		if(strcmp(sp, "Nwalker =") == 0){
@@ -374,6 +380,15 @@ int solver::readParam(){
 			er = fscanf (paramfile, "%d", &nBestSolutions);
 			if(er <= 0){
 				printf("Error: nBestSolutions is not valid!\n");
+				return 0;
+			}
+			if(fgets(sp, 3, paramfile) != nullptr)
+			continue;
+		}
+		if(strcmp(sp, "Stop condition =") == 0){
+			er = fscanf (paramfile, "%lf", &stopcritera);
+			if(er <= 0){
+				printf("Error: Stop condition is not valid!\n");
 				return 0;
 			}
 			if(fgets(sp, 3, paramfile) != nullptr)

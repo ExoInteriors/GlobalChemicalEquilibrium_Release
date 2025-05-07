@@ -1,3 +1,5 @@
+# Gibbs energies
+
 GRT_0 = 12.754968975991657
 GRT_1 = 2.855205515319998
 GRT_2 = 3.610920266344768
@@ -70,7 +72,7 @@ bound_Moles_silicate = 1.0e-30, 100000.0
 bound_Moles_metal = 1.0e-30, 100000.0
 
 
-#Priors
+# Priors
 
 prior_MgO_silicate = 0.1, 0.3
 prior_SiO2_silicate = 0.0, 1.0
