@@ -1,0 +1,34 @@
+# phase components fractions
+
+MgO_silicate = 2.12e-1
+SiO2_silicate = 9.80e-2
+MgSiO3_silicate = 5.37e-1
+FeO_silicate = 3.42e-2
+FeSiO3_silicate = 1.66e-2
+Na2O_silicate = 1.66e-6
+Na2SiO3_silicate = 6.27e-3
+H2_silicate = 3.70e-2
+H2O_silicate = 5.96e-2
+CO_silicate = 5.92e-9
+CO2_silicate = 2.20e-11
+Fe_metal = 6.05e-1
+Si_metal = 6.31e-2
+O_metal = 1.99e-2
+H_metal = 3.12e-1
+H2_gas = 9.92e-1
+CO_gas = 1.34e-6
+CO2_gas = 1.57e-9
+CH4_gas = 1.29e-3
+O2_gas = 9.39e-15
+H2O_gas = 6.55e-3
+Fe_gas = 7.33e-7
+Mg_gas = 2.41e-6
+SiO_gas = 2.94e-6
+Na_gas = 1.94e-5
+SiH4_gas = 1.20e-4
+
+# Other variables
+
+Moles_atm = 2.32e3
+Moles_silicate = 2.55e3
+Moles_metal = 2.73e3
