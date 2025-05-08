@@ -1,0 +1,34 @@
+# Molecular Weights of all used species in g/mol.
+# Additional species can be added. Names must include the phase '_silicate', '_metal', or '_gas'.
+# The names must be identical to the names set in the Equation.py files
+
+
+MgO_silicate          = 40.3044
+SiO2_silicate         = 60.08
+MgSiO3_silicate       = 100.39
+FeO_silicate          = 71.844
+FeSiO3_silicate       = 131.9287
+Na2O_silicate         = 61.9789
+Na2SiO3_silicate      = 122.063
+H2_silicate           = 2.016
+H2O_silicate          = 18.01528
+CO_silicate           = 28.01
+CO2_silicate          = 44.0095
+
+Fe_metal              = 55.847
+Si_metal              = 28.0855
+O_metal               = 15.9994
+H_metal               = 1.00794
+C_metal               = 12.011
+
+H2_gas                = 2.016
+CO_gas                = 28.01
+CO2_gas               = 44.0095
+CH4_gas               = 16.04
+O2_gas                = 31.9988
+H2O_gas               = 18.01528
+Fe_gas                = 55.847
+Mg_gas                = 24.305
+SiO_gas               = 44.08
+Na_gas                = 22.98977
+SiH4_gas              = 32.12

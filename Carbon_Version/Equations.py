@@ -1,5 +1,11 @@
 import sympy as sy
+import importlib
+import sys
 from sympy import log, exp, ccode
+
+sys.path.append('../src')
+read_Molecular_Weight = importlib.import_module('read_Molecular_Weight')
+
 
 ##########################################################################################################################################
 # This Python script contains the equations of the chemical reactions. 
@@ -14,7 +20,7 @@ from sympy import log, exp, ccode
 # *****************************************************************************************************************
 #    SECTION 1    *************************************************************************************************
 # *****************************************************************************************************************
-# Set the number of equations in nGRT
+# Set the number of chemical reaction equations in nGRT
 # List all included species, the names must contain the phases '_silicate', '_metal', or '_gas'.
 # List all additional variables
 # At the end the array 'var' contains all user variables, these are the space component fractions and the
@@ -80,40 +86,13 @@ GRT_T = sy.IndexedBase('GRT_T', (nGRT), real=True)
 # *****************************************************************************************************************
 #    SECTION 3    *************************************************************************************************
 # *****************************************************************************************************************
-# List here the molar masses of all involved phase components in g/mol.
+# Check if all species are included in the '../Molecular_Weight.dat' file.
+# If they are not included there, add them.
 # This is needed for the pressure calculation.
 # *****************************************************************************************************************
-mol_w = {
 
-	'MgO_silicate'		: 40.3044,
-	'SiO2_silicate'		: 60.08,
-	'MgSiO3_silicate'	: 100.39,
-	'FeO_silicate'		: 71.844,
-	'FeSiO3_silicate'	: 131.9287,
-	'Na2O_silicate'		: 61.9789,
-	'Na2SiO3_silicate'	: 122.063,
-	'H2_silicate'		: 2.016,
-	'H2O_silicate'		: 18.01528,
-	'CO_silicate'		: 28.01,
-	'CO2_silicate'		: 44.0095,
-
-	'Fe_metal'		: 55.847,
-	'Si_metal'		: 28.0855,
-	'O_metal'		: 15.9994,
-	'H_metal'		: 1.00794,
-	'C_metal'		: 12.011,
-	
-	'H2_gas'		: 2.016,
-	'CO_gas'		: 28.01,
-	'CO2_gas'		: 44.0095,
-	'CH4_gas'		: 16.04,
-	'O2_gas'		: 31.9988,
-	'H2O_gas'		: 18.01528,
-	'Fe_gas'		: 55.847,
-	'Mg_gas'		: 24.305,
-	'SiO_gas'		: 44.08,
-	'Na_gas'		: 22.98977,
-	}
+#create dictionary from the data in '../Molecular_Weight.dat'
+mol_w = read_Molecular_Weight.read_file()
 
 # *****************************************************************************************************************
 # *****************************************************************************************************************
@@ -251,7 +230,7 @@ for s in species:
 			#print('silicate index', index, mol_w[s], var[s])
 			grams_per_mole_silicate += var[s] * mol_w[s]
 		except:
-			print("Error, molar mass not found for species %s" % s)
+			print("Error, molar mass in Molecular_Weight.dat not found for species %s" % s)
 			exit()
 
 #Grams per mole initial metal
@@ -263,7 +242,7 @@ for s in species:
 			#print('metal index', index, mol_w[s], var[s])
 			grams_per_mole_metal += var[s] * mol_w[s]
 		except:
-			print("Error, molar mass not found for species %s" % s)
+			print("Error, molar mass in Molecular_Weight.dat not found for species %s" % s)
 			exit()
 
 #Grams per mole initial atmosphere
@@ -275,7 +254,7 @@ for s in species:
 			#print('gas index', index, mol_w[s], var[s])
 			grams_per_mole_atm += var[s] * mol_w[s]
 		except:
-			print("Error, molar mass not found for species %s" % s)
+			print("Error, molar mass in Molecular_Weight.dat not found for species %s" % s)
 			exit()
 
 
@@ -312,18 +291,18 @@ gas_count = 0
 print('Silicate species: ')
 for s in species:
 	if("_silicate" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		silicate_count += 1
 
 print('Metal species: ')
 for s in species:
 	if("_metal" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		metal_count += 1
 print('Gas species: ')
 for s in species:
 	if("_gas" in s):
-		print("\t", s)
+		print("\t", species.index(s), ":", s)
 		gas_count += 1
 
 if(silicate_count + metal_count + gas_count != len(species)):

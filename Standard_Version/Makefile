@@ -31,7 +31,7 @@ calculate_P.o: $(HEADERS) calculate_P.cpp
 	$(CXX) $(CXXFLAGS) -c -o calculate_P.o calculate_P.cpp -I.
 
 
-parameters.h ctot.cpp grad_ctot.cpp calculate_P.cpp : ../src/CTOT.py Equations.py
+parameters.h ctot.cpp grad_ctot.cpp calculate_P.cpp : ../src/CTOT.py Equations.py ../Molecular_Weight.dat
 	python3 ../src/CTOT.py Equations.py
 
 # Clean rule to remove generated files
