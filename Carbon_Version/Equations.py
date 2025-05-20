@@ -20,13 +20,11 @@ read_Molecular_Weight = importlib.import_module('read_Molecular_Weight')
 # *****************************************************************************************************************
 #    SECTION 1    *************************************************************************************************
 # *****************************************************************************************************************
-# Set the number of chemical reaction equations in nGRT
 # List all included species, the names must contain the phases '_silicate', '_metal', or '_gas'.
 # List all additional variables
 # At the end the array 'var' contains all user variables, these are the space component fractions and the
 # additional variables
 # *****************************************************************************************************************
-nGRT = 20		#Number of chemical reaction equations = Number of Gibbs free energy terms
 
 species = [
 	'MgO_silicate', 'SiO2_silicate', 'MgSiO3_silicate', 'FeO_silicate', 'FeSiO3_silicate',
@@ -42,7 +40,7 @@ variables = species + additionalVariables
 
 #x_species = [s for s in variables]
 #s1 = sy.symbols(variables)
-s1 = sy.IndexedBase('var', (len(variables),), real=True)
+s1 = sy.IndexedBase('var', len(variables), real=True)
 var = dict(zip(variables, s1))
 # *****************************************************************************************************************
 # *****************************************************************************************************************
@@ -68,15 +66,16 @@ nH   = sy.symbols('nH', real=True)
 nNa  = sy.symbols('nNa', real=True)
 nC   = sy.symbols('nC', real=True)
 Mplanet_Mearth = sy.symbols('Mplanet_Mearth', real=True)
+T_surf = sy.symbols('T_surf', real=True)
 T_CMB = sy.symbols('T_CMB', real=True)
 Pstd = sy.symbols('Pstd', real=True)
 
-Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_CMB, Pstd]
+Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_surf, T_CMB, Pstd]
 
 
 #Don't change the following parameters
 P = sy.symbols('P', real=True)
-GRT_T = sy.IndexedBase('GRT_T', (nGRT), real=True)
+GRT_T = sy.IndexedBase('GRT_T', 1, real=True)
 # *****************************************************************************************************************
 # *****************************************************************************************************************
 
@@ -328,7 +327,7 @@ def printff():
 
 
 def getff():
-	return ff, P, variables, Parameters, nGRT
+	return ff, P, variables, Parameters
 
 
 if __name__ == "__main__":

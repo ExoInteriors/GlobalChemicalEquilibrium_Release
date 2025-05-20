@@ -7,7 +7,7 @@
 //Ndim is the number of equations
 void solver::allocate(){
 
-	GRT_T = (double*)malloc(nGRT * sizeof(double));
+	GRT_T = (double*)malloc((GRTmaxIndex + 1) * sizeof(double));
 	prior_min = (double*)malloc(Ndim * sizeof(double));
 	prior_max = (double*)malloc(Ndim * sizeof(double));
 	bound_min = (double*)malloc(Ndim * sizeof(double));
@@ -23,7 +23,7 @@ void solver::allocate(){
 		bound_min[i] = LARGE;
 		bound_max[i] = LARGE;
 	}
-	for(int i = 0; i < nGRT; ++i){
+	for(int i = 0; i < GRTmaxIndex + 1; ++i){
 		GRT_T[i] = LARGE;
 	}
 
@@ -82,6 +82,101 @@ int solver::write_output_to_file(int t) {
 	return 1;
 }
 
+
+int solver::readGibbs(){
+
+	printf("Start reading Gibbs energy file %s\n", GibbsFilename);
+
+	FILE *Gibbsfile;
+	Gibbsfile = fopen(GibbsFilename, "r");
+
+	if(Gibbsfile == NULL){
+		printf("Error, Gibbs file does not exist\n");
+		return 0;
+	}
+
+	//------------------------------------------------
+
+	char sp[160];
+	char st[160];
+
+	int er; 
+	int grtCount = 0;
+
+	for(int j = 0; j < 1000; ++j){ //loop around all lines in the Gibbs file
+		int c;
+		for(int i = 0; i < 50; ++i){
+			c = fgetc(Gibbsfile);
+			if(c == EOF){
+				break;
+			}
+			sp[i] = char(c);
+			if(c == '=' || c == ':'){
+				sp[i + 1] = '\0';
+				break;
+			}
+			if(c == '\n'){
+				//blank line
+				i = -1;
+				continue;
+			}
+		}
+		if(c == EOF) break;
+//printf("j = %d %s\n", j, sp);
+
+
+		//Read GRT array
+		int fg = 0;
+		double T;
+		for(int p = 0; p < nGRT; ++p){
+			sprintf(st, "GRT_%d =", GRTid[p]);
+
+			if(strcmp(sp, st) == 0){
+				int id = GRTid[p];
+				er = fscanf (Gibbsfile, "%lf %lf", &GRT_T[id], &T);
+//printf("%s %d %d %g %g %g %g\n", sp, p, id, GRT_T[id], T, T_surf, T_CMB);
+				if(er <= 0){
+					printf("Error: GRT_%d is not valid!\n", p);
+					return 0;
+				}
+				//check if Temperatures agree
+				if(abs(T - T_surf) > 5.0 && abs(T - T_CMB) > 5.0){
+					printf("Error: Temperature for Gibbs Energy GRT_ %d does not math T_surf or T_CMB. %g %g %g\n", p, T, T_surf, T_CMB);
+					return 0;
+
+				}
+
+
+				if(fgets(sp, 3, Gibbsfile) != nullptr)
+				fg = 1;
+				++grtCount;
+			}
+		}
+		if(fg == 1) continue;
+
+	}
+
+	fclose(Gibbsfile);
+
+	//Check if all GRT values are set
+	for(int i = 0; i < nGRT; ++i){
+		int id = GRTid[i];
+		if(GRT_T[id] == LARGE){
+			printf("Error, value for GRT %d not set in Gibbs file\n", id);
+			return 0;
+
+		}
+	}
+
+	if(grtCount != nGRT){
+		printf("Error, number of GRT terms in Gibbs file %d does not agree with nGRT %d\n", grtCount, nGRT);	
+		return 0;
+	}
+
+	return 1;
+}
+
+
 int solver::readcheminput(){
 
 	printf("Start reading chemical inputfile\n");
@@ -103,7 +198,6 @@ int solver::readcheminput(){
 	char skip[8];
 	int er; 
 	int parameterCount = 0;
-	int grtCount = 0;
 	int boundariesCount = 0;
 	int priorsCount = 0;
 
@@ -127,25 +221,6 @@ int solver::readcheminput(){
 		}
 		if(c == EOF) break;
 //printf("j = %d %s\n", j, sp);
-
-		//Read GRT array
-		int fg = 0;
-		for(int p = 0; p < nGRT; ++p){
-			sprintf(st, "GRT_%d =", p);
-
-			if(strcmp(sp, st) == 0){
-				er = fscanf (paramfile, "%lf", &GRT_T[p]);
-				if(er <= 0){
-					printf("Error: GRT_%d is not valid!\n", p);
-					return 0;
-				}
-				if(fgets(sp, 3, paramfile) != nullptr)
-				fg = 1;
-				++grtCount;
-			}
-		}
-		if(fg == 1) continue;
-
 
 		//Read Parameters array
 		int fp = 0;
@@ -214,10 +289,6 @@ int solver::readcheminput(){
 		printf("Error, number of parameters in chem_input.dat file does not agree with nParameters\n");	
 		return 0;
 	}
-	if(grtCount != nGRT){
-		printf("Error, number of GRT terms in chem_input.dat file does not agree with nGRT\n");	
-		return 0;
-	}
 	if(boundariesCount != Ndim){
 		printf("Error, number of bondaries in chem_input.dat file does not agree with number of variables\n");	
 		return 0;
@@ -227,14 +298,6 @@ int solver::readcheminput(){
 		return 0;
 	}
 
-	//Check if all GRT values are set
-	for(int i = 0; i < nGRT; ++i){
-		if(GRT_T[i] == LARGE){
-			printf("Error, value for GRT %d not set in chem_input.dat file\n", i);
-			return 0;
-
-		}
-	}
 
 	//Check if all Parameters values are set
 	for(int i = 0; i < nParameters; ++i){
@@ -324,6 +387,7 @@ int solver::readParam(){
 	//set default values
 	sprintf(inputFilename, "-");
 	sprintf(outputFilename, "output.dat");
+	sprintf(GibbsFilename, "Gibbs.dat");
 	//------------------------------------------------
 
 	char sp[160];
@@ -457,6 +521,15 @@ int solver::readParam(){
 			if(fgets(sp, 3, paramfile) != nullptr)
 			continue;
 		}
+		if(strcmp(sp, "Gibbs energy file =") == 0){
+			er = fscanf (paramfile, "%s", GibbsFilename);
+			if(er <= 0){
+				printf("Error: Gibbs file is not valid!\n");
+				return 0;
+			}
+			if(fgets(sp, 3, paramfile) != nullptr)
+			continue;
+		}
 		if(strcmp(sp, "Initial conditions file =") == 0){
 			er = fscanf (paramfile, "%s", inputFilename);
 			if(er <= 0){
@@ -482,6 +555,9 @@ int solver::readParam(){
 
 	if(strcmp(inputFilename, "-") != 0){
 		useICFile = 1;
+	} 
+	if(strcmp(GibbsFilename, "-") != 0){
+		useGibbsFile = 1;
 	} 
 
 	return 1;

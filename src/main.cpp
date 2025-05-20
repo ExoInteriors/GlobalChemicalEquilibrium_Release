@@ -200,12 +200,18 @@ int main() {
 	//Allocate memory
 	S.allocate();
 
+
 	// Read chemical input
-	int er2 = S.readcheminput();
-	if(er2 <= 0) {
+	er = S.readcheminput();
+	if(er <= 0) {
 		return 0;
 	}
 
+	// Read Gibbs Energies
+	er = S.readGibbs();
+	if(er <= 0) {
+		return 0;
+	}
 
 	//Set SVGD bandwidth
 	for(int i = 0; i < 26; ++i){

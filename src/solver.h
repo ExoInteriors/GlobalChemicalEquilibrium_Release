@@ -83,8 +83,10 @@ public:
 	bool reset_best_values;
 
 	int useICFile = 0;
+	int useGibbsFile = 0;
 	char inputFilename[160];
 	char outputFilename[160];
+	char GibbsFilename[160];
 
 
 
@@ -103,6 +105,7 @@ public:
 
 	void allocate();
 	int readParam();
+	int readGibbs();
 	int readcheminput();
 	int readIC();
 	void setBoundaries(double *);
