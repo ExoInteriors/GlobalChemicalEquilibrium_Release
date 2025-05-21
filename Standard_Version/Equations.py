@@ -12,8 +12,8 @@ read_Molecular_Weight = importlib.import_module('read_Molecular_Weight')
 # The script uses SymPy's symbolic algebra package to define the equations which are later used to calculate the derivatives automatically
 # Every input parameter must be defined as sympy symbol
 
-#Date: February 2025
-#Author: Simon Grimm
+#Date: May 2025
+#Author: Simon Grimm / Aaron Werlen
 ##########################################################################################################################################
 
 

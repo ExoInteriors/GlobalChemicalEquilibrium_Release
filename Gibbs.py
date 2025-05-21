@@ -34,7 +34,7 @@ print("Calculate the Gibbs Energies for the temperatures: ")
 print(TK)
 
 #------------------------------------------------------------------------------------------------
-#Calcualte the Gibbs free energy according to 
+#Calculate the Gibbs free energy according to 
 #https://webbook.nist.gov/chemistry/form-ser/
 
 #input:
@@ -891,6 +891,11 @@ G20=-(Rgas*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
 
 GRT20=G20/(Rgas*TK)
 
+############################################################################################################################
+# Print now the Gibbs energies into the file Gibbs.dat.
+# Important, the printed indices must agree with the indices in the Equations.py file.
+# The printed inices do not need to be consecutive.
+############################################################################################################################
 
 print("Write Gibbs energies into file Gibbs.dat")
 
