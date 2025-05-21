@@ -85,6 +85,24 @@ int solver::write_output_to_file(int t) {
 
 int solver::readGibbs(){
 
+	if(useGibbsFile == 0){
+		printf("Use  Gibbs.py script to generate Gibbs energies file Gibbs.dat\n");
+		char command[160];
+		sprintf(command, "python3 ../Gibbs.py %g %g", T_surf, T_CMB);
+		int er = system(command);
+		sprintf(GibbsFilename, "Gibbs.dat");
+
+		if(er != 0){
+			printf("Error in running Gibbs.py: %s\n", command);
+			return 0;
+
+		}
+
+	}
+
+
+
+
 	printf("Start reading Gibbs energy file %s\n", GibbsFilename);
 
 	FILE *Gibbsfile;
@@ -159,8 +177,10 @@ int solver::readGibbs(){
 	fclose(Gibbsfile);
 
 	//Check if all GRT values are set
+	printf("T_surf %g T_CMB %g\n", T_surf, T_CMB);
 	for(int i = 0; i < nGRT; ++i){
 		int id = GRTid[i];
+		printf("GRT %d %g\n", id, GRT_T[id]);
 		if(GRT_T[id] == LARGE){
 			printf("Error, value for GRT %d not set in Gibbs file\n", id);
 			return 0;
@@ -172,6 +192,7 @@ int solver::readGibbs(){
 		printf("Error, number of GRT terms in Gibbs file %d does not agree with nGRT %d\n", grtCount, nGRT);	
 		return 0;
 	}
+	printf("End reading Gibbs energy file\n");
 
 	return 1;
 }

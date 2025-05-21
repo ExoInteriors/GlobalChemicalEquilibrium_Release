@@ -1,5 +1,5 @@
 # General parameters
-Gibbs energy file = Gibbs.dat
+Gibbs energy file = -
 Initial conditions file = -
 Output file = output.dat
 outputInterval = 10000

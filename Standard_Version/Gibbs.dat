@@ -1,4 +1,5 @@
 # Gibbs energies computed from Gibbs.py
+# Name, Gibbs free energy in J/mol, Temperature in K 
 
 GRT_0 = 4.9217756362874985 4000.0
 GRT_1 = 2.1580339177172196 4500.0
