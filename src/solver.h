@@ -24,6 +24,8 @@ class solver{
 
 public:
 
+	double codeVersion = 1.01;
+
 
 	// *****************************************************************************
 	//Chemical parameters
@@ -86,6 +88,7 @@ public:
 	int useGibbsFile = 0;
 	char inputFilename[160];
 	char outputFilename[160];
+	char infoFilename[160];
 	char GibbsFilename[160];
 
 
@@ -103,11 +106,14 @@ public:
 	double LARGE = -1e-30;
 
 
+	// Functions
+
 	void allocate();
 	int readParam();
 	int readGibbs();
 	int readcheminput();
 	int readIC();
+	void printInfo();
 	void setBoundaries(double *);
 	void setBoundariesLog(double *);
 	void adamW_update(double *);

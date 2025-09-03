@@ -196,6 +196,7 @@ int main() {
 	if(er <= 0) {
 		return 0;
 	}
+	
 
 	//Allocate memory
 	S.allocate();
@@ -206,6 +207,9 @@ int main() {
 	if(er <= 0) {
 		return 0;
 	}
+
+	//print info file
+	S.printInfo();
 
 	// Read Gibbs Energies
 	er = S.readGibbs();

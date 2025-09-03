@@ -410,6 +410,7 @@ int solver::readParam(){
 	//set default values
 	sprintf(inputFilename, "-");
 	sprintf(outputFilename, "output.dat");
+	sprintf(infoFilename, "info.dat");
 	sprintf(GibbsFilename, "Gibbs.dat");
 	//------------------------------------------------
 
@@ -611,6 +612,57 @@ int solver::readParam(){
 
 	return 1;
 }
+
+
+//Print all used parameters to the infofile
+void solver::printInfo(){
+	FILE *infofile;
+	infofile = fopen("info.dat", "a");
+
+	fprintf(infofile, "*******************\n");
+	fprintf(infofile, "Code Version = %g\n", codeVersion);
+	fprintf(infofile, "Equations path = %s\n\n", EquationsFile.c_str());
+
+
+	fprintf(infofile, "Used Parameters:\n\n");
+
+	fprintf(infofile, "Gibbs energy file = %s\n", GibbsFilename);
+	fprintf(infofile, "Initial conditions file = %s\n", inputFilename);
+	fprintf(infofile, "Output file = %s\n", outputFilename);
+	fprintf(infofile, "outputInterval = %d\n", outputInterval);
+	fprintf(infofile, "Nwalker = %d\n", N);
+	fprintf(infofile, "nSteps = %d\n", nSteps);
+	fprintf(infofile, "nIterations = %d\n", nIterations);
+	fprintf(infofile, "nBestSolutions = %d\n", nBestSolutions);
+	fprintf(infofile, "Stop condition = = %g\n", stopcritera);
+	fprintf(infofile, "method = %d\n", method);
+	fprintf(infofile, "eta = %g\n", initial_eta);
+	fprintf(infofile, "lambda_reg = %g\n", lambda_reg);
+	fprintf(infofile, "eps = %g\n", eps);
+	fprintf(infofile, "beta1 = %g\n", beta1);
+	fprintf(infofile, "beta2 = %g\n", beta2);
+
+	fprintf(infofile, "\n");
+
+
+	fprintf(infofile, "chem_input.dat values:\n\n");
+	for(int p = 0; p < nParameters; ++p){
+		fprintf(infofile, "%s = %g\n", ParameterNames[p].c_str(), Parameters[p]);
+	}
+	fprintf(infofile, "\n");
+
+
+	fprintf(infofile, "Used Variables:\n\n");
+	for(int i = 0; i < Ndim; ++i){
+		fprintf(infofile, "%s\n", VariableNames[i].c_str());
+	}
+	fprintf(infofile, "\n");
+	fprintf(infofile, "*******************\n");
+
+	fclose(infofile);
+}
+
+
 
 //read IC file for a single walker
 int solver::readIC(){
