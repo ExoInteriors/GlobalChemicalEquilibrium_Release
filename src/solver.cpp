@@ -85,10 +85,12 @@ int solver::write_output_to_file(int t) {
 
 int solver::readGibbs(){
 
+
+	//When no Gibbs file is given, use the Python script Gibbs.py to create the Gibbs.dat file
 	if(useGibbsFile == 0){
-		printf("Use  Gibbs.py script to generate Gibbs energies file Gibbs.dat\n");
-		char command[160];
-		sprintf(command, "python3 ../Gibbs.py %g %g", T_surf, T_CMB);
+		printf("Use %s script to generate Gibbs energies file Gibbs.dat\n", GibbsFilename);
+		char command[300];
+		sprintf(command, "python3 %s %g %g", GibbsFilename, T_surf, T_CMB);
 		int er = system(command);
 		sprintf(GibbsFilename, "Gibbs.dat");
 
@@ -577,9 +579,35 @@ int solver::readParam(){
 	if(strcmp(inputFilename, "-") != 0){
 		useICFile = 1;
 	} 
-	if(strcmp(GibbsFilename, "-") != 0){
+
+	// --------------------------------------------
+	//Test if GibbsFilename contains .dat or .py
+	// --------------------------------------------
+	std::string Test = GibbsFilename;
+	std::string ending1 (".dat");
+	std::string ending2 (".py");
+	int c1 = Test.find(ending1);
+	int c2 = Test.find(ending2);
+
+	printf("Compare .dat ending %d\n", c1);
+	printf("Compare .py ending %d\n", c2);
+
+	if(c1 <= 0 && c2 <= 0){
+		printf("Error, Gibbs energy file name must contain '.dat' or '.py'\n");
+		return 0;
+	}
+	if(c1 > 0 && c2 > 0){
+		printf("Error, Gibbs energy file name must contain '.dat' or '.py'\n");
+		return 0;
+	}
+	if(c1 >= 0){
 		useGibbsFile = 1;
-	} 
+	}
+	else{
+		useGibbsFile = 0;
+	}
+	// --------------------------------------------
+
 
 	return 1;
 }

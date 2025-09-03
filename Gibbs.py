@@ -11,9 +11,10 @@ from numpy import log10
 
 
 log_to_ln = 2.302585093
-Rgas = 8.314462618153
+Rgas = 8.314462618153	# J /(mol K)
 
 
+#define Temprature values in K
 if(len(sys.argv) <= 1):
 
 	print("No temperatures specified, use default values")
