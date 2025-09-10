@@ -925,7 +925,7 @@ print("GRT_15 =", GRT16[0], TK[0], file = gibbsFile)
 print("GRT_16 =", GRT17[0], TK[0], file = gibbsFile) 
 print("GRT_17 =", GRT18[0], TK[0], file = gibbsFile) 
 print("GRT_18 =", GRT19[0], TK[0], file = gibbsFile) 
-print("GRT_19 =", GRT20[0], TK[0], file = gibbsFile) 
+print("GRT_19 =", GRT20[1], TK[1], file = gibbsFile) 
 
 
 gibbsFile.close()
