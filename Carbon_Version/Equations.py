@@ -277,7 +277,7 @@ massfrac_atm = grams_atm / totalmass
 fratio = massfrac_atm / (1.0 - massfrac_atm)
 #double Mplanet_Mearth = 2.0;
 
-P = 1.2e6 * fratio * pow(Mplanet_Mearth, 2.0 / 3.0)  # bar
+P = 1.2e6 * fratio * pow(Mplanet_Mearth (1 - massfrac_atm), 2.0 / 3.0)  # bar
 # *****************************************************************************************************************
 # *****************************************************************************************************************
 
