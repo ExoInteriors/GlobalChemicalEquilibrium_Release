@@ -673,10 +673,19 @@ GgasSiH4 = np.vectorize(GibbsgasSiH4)(TK)
 
 # H2 melt
 
-lnk=-12.5-0.76*1.0e-4*1.0  #Hirschmann with P in bar, his in GPa, here at 1 bar
-G_meltH2_gasH2=-Rgas*TK*lnk   #Delta G of the Hirschmann reaction at 1 bar
+#lnk=-12.5-0.76*1.0e-4*1.0  #Hirschmann with P in bar, his in GPa, here at 1 bar
+#G_meltH2_gasH2=-Rgas*TK*lnk   #Delta G of the Hirschmann reaction at 1 bar
     
-GmeltH2=G_meltH2_gasH2+GgasH2  #apparent free energy of formation of H2 in melt by difference
+#GmeltH2=G_meltH2_gasH2+GgasH2  #apparent free energy of formation of H2 in melt by difference
+
+
+#Fit for Hirschmann et al. (2012) and Gilmore & Stixrude (2025)
+
+a_H2 = -2.293612e-02
+b_H2 = -2.045962e+01
+c_H2 = 1.083921e+04
+
+GmeltH2 = (a_H2*TK**2 + b_H2*TK + c_H2)
 
 
 
