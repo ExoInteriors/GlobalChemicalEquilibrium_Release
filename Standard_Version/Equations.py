@@ -164,7 +164,7 @@ f12 = 0.5 * log(var['O2_gas']) + log(var['SiO_gas']) - log(var['SiO2_silicate'])
 f13 = 0.5 * log(var['O2_gas']) + 2.0 * log(var['Na_gas']) - log(var['Na2O_silicate']) + GRT_T[13] + 2.5 * log(P/Pstd)
 
 # f14: H2 (melt) <-> H2 (gas)
-f14 = log(var['H2_silicate']) + lngH2 - log(var['H2_gas']) + GRT_T[14] - log(1.0e4/Pstd)
+f14 = log(var['H2_silicate']) + lngH2 - log(var['H2_gas']) + GRT_T[14] - log(P/Pstd)
 
 # f15: H2O (melt) <-> H2O (gas)
 f15 = log(var['H2O_silicate']) + lngH2Omelt - log(var['H2O_gas']) + GRT_T[15] - log(P/Pstd)
@@ -274,7 +274,7 @@ massfrac_atm = grams_atm / totalmass
 fratio = massfrac_atm / (1.0 - massfrac_atm)
 #double Mplanet_Mearth = 2.0;
 
-P = 1.2e6 * fratio * pow(Mplanet_Mearth, 2.0 / 3.0)  # bar
+P = 1.2e6 * fratio * pow(Mplanet_Mearth * (1.0 - massfrac_atm), 2.0 / 3.0)  # bar
 # *****************************************************************************************************************
 # *****************************************************************************************************************
 
