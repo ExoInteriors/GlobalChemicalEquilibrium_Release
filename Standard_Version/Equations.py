@@ -66,11 +66,11 @@ nH   = sy.symbols('nH', real=True)
 nNa  = sy.symbols('nNa', real=True)
 nC   = sy.symbols('nC', real=True)
 Mplanet_Mearth = sy.symbols('Mplanet_Mearth', real=True)
-T_surf = sy.symbols('T_surf', real=True)
-T_CMB = sy.symbols('T_CMB', real=True)
+T_AMOI = sy.symbols('T_AMOI', real=True)
+T_SME = sy.symbols('T_SME', real=True)
 Pstd = sy.symbols('Pstd', real=True)
 
-Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_surf, T_CMB, Pstd]
+Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_AMOI, T_SME, Pstd]
 
 
 #Don't change the following parameters
@@ -108,13 +108,13 @@ mol_w = read_Molecular_Weight.read_file()
 # *****************************************************************************************************************
 
 # additional variables can be added here as long as they only appear in the set of chemical equations and not as input variables
-lngSi = -6.65*1873.0/T_CMB-(12.41*1873.0/T_CMB)*log(1.0-var['Si_metal']) \
-    - ((-5.0*1873.0/T_CMB)*var['O_metal']*(1.0+log(1.0-var['O_metal'])/var['O_metal']-1.0/(1.0-var['Si_metal']))) \
-    + (-5.0*1873.0/T_CMB)*var['O_metal']**2.0*var['Si_metal']*(1.0/(1.0-var['Si_metal'])+1.0/(1.0-var['O_metal'])+var['Si_metal']/(2.0*(1.0-var['Si_metal'])**2.0)-1.0)
+lngSi = -6.65*1873.0/T_SME-(12.41*1873.0/T_SME)*log(1.0-var['Si_metal']) \
+    - ((-5.0*1873.0/T_SME)*var['O_metal']*(1.0+log(1.0-var['O_metal'])/var['O_metal']-1.0/(1.0-var['Si_metal']))) \
+    + (-5.0*1873.0/T_SME)*var['O_metal']**2.0*var['Si_metal']*(1.0/(1.0-var['Si_metal'])+1.0/(1.0-var['O_metal'])+var['Si_metal']/(2.0*(1.0-var['Si_metal'])**2.0)-1.0)
 
-lngO = (4.29-16500.0/T_CMB)-(-1.0*1873.0/T_CMB)*log(1.0-var['O_metal']) \
-    -((-5.0*1873.0/T_CMB)*var['Si_metal']*(1.0+log(1.0-var['Si_metal'])/var['Si_metal']-1.0/(1.0-var['O_metal']))) \
-    +(-5.0*1873.0/T_CMB)*var['Si_metal']**2.0*var['O_metal']*(1.0/(1.0-var['O_metal'])+1.0/(1.0-var['Si_metal'])+var['O_metal']/(2.0*(1.0-var['O_metal'])**2.0)-1.0)
+lngO = (4.29-16500.0/T_SME)-(-1.0*1873.0/T_SME)*log(1.0-var['O_metal']) \
+    -((-5.0*1873.0/T_SME)*var['Si_metal']*(1.0+log(1.0-var['Si_metal'])/var['Si_metal']-1.0/(1.0-var['O_metal']))) \
+    +(-5.0*1873.0/T_SME)*var['Si_metal']**2.0*var['O_metal']*(1.0/(1.0-var['O_metal'])+1.0/(1.0-var['Si_metal'])+var['O_metal']/(2.0*(1.0-var['O_metal'])**2.0)-1.0)
 
 lngH2 = 0.0
 lngH2Omelt = 0.0

@@ -12,8 +12,8 @@ nC = 54.87833313638549
 # Other parameters
 
 Mplanet_Mearth = 10.336323562999999
-T_surf = 2032.6598
-T_CMB = 2532.6598
+T_AMOI = 2032.6598
+T_SME = 2532.6598
 Pstd = 1.0
 
 

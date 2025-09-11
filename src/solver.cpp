@@ -90,7 +90,7 @@ int solver::readGibbs(){
 	if(useGibbsFile == 0){
 		printf("Use %s script to generate Gibbs energies file Gibbs.dat\n", GibbsFilename);
 		char command[300];
-		sprintf(command, "python3 %s %g %g", GibbsFilename, T_surf, T_CMB);
+		sprintf(command, "python3 %s %g %g", GibbsFilename, T_AMOI, T_SME);
 		int er = system(command);
 		sprintf(GibbsFilename, "Gibbs.dat");
 
@@ -154,14 +154,14 @@ int solver::readGibbs(){
 			if(strcmp(sp, st) == 0){
 				int id = GRTid[p];
 				er = fscanf (Gibbsfile, "%lf %lf", &GRT_T[id], &T);
-//printf("%s %d %d %g %g %g %g\n", sp, p, id, GRT_T[id], T, T_surf, T_CMB);
+//printf("%s %d %d %g %g %g %g\n", sp, p, id, GRT_T[id], T, T_AMOI, T_SME);
 				if(er <= 0){
 					printf("Error: GRT_%d is not valid!\n", p);
 					return 0;
 				}
 				//check if Temperatures agree
-				if(abs(T - T_surf) > 5.0 && abs(T - T_CMB) > 5.0){
-					printf("Error: Temperature for Gibbs Energy GRT_ %d does not math T_surf or T_CMB. %g %g %g\n", p, T, T_surf, T_CMB);
+				if(abs(T - T_AMOI) > 5.0 && abs(T - T_SME) > 5.0){
+					printf("Error: Temperature for Gibbs Energy GRT_ %d does not math T_AMOI or T_SME. %g %g %g\n", p, T, T_AMOI, T_SME);
 					return 0;
 
 				}
@@ -179,7 +179,7 @@ int solver::readGibbs(){
 	fclose(Gibbsfile);
 
 	//Check if all GRT values are set
-	printf("T_surf %g T_CMB %g\n", T_surf, T_CMB);
+	printf("T_AMOI %g T_SME %g\n", T_AMOI, T_SME);
 	for(int i = 0; i < nGRT; ++i){
 		int id = GRTid[i];
 		printf("GRT %d %g\n", id, GRT_T[id]);

@@ -24,7 +24,7 @@ if(len(sys.argv) <= 1):
 
 else:
 
-	#read in T_surf and T_CMB
+	#read in T_AMOI and T_SME
 	TK = np.array([])
 	for i in range(1, len(sys.argv)):
 		v = sys.argv[i]
