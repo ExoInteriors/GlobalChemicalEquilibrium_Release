@@ -14,7 +14,6 @@ nC = 0.1164707804247013
 Mplanet_Mearth = 0.50499144
 T_AMOI = 4000
 T_SME = 4500
-Pstd = 1.0
 
 
 # Boundaries

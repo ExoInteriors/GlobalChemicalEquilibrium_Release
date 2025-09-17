@@ -68,14 +68,14 @@ nC   = sy.symbols('nC', real=True)
 Mplanet_Mearth = sy.symbols('Mplanet_Mearth', real=True)
 T_AMOI = sy.symbols('T_AMOI', real=True)
 T_SME = sy.symbols('T_SME', real=True)
-Pstd = sy.symbols('Pstd', real=True)
 
-Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_AMOI, T_SME, Pstd]
+Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, Mplanet_Mearth, T_AMOI, T_SME]
 
 
 #Don't change the following parameters
 P = sy.symbols('P', real=True)
 GRT_T = sy.IndexedBase('GRT_T', 1, real=True)
+Pstd = 1.0
 # *****************************************************************************************************************
 # *****************************************************************************************************************
 

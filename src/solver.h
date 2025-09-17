@@ -24,7 +24,7 @@ class solver{
 
 public:
 
-	double codeVersion = 1.02;
+	double codeVersion = 1.03;
 
 
 	// *****************************************************************************
