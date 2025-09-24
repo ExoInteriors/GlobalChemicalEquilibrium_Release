@@ -38,7 +38,7 @@ Run the code in all subfolers with:
 
 	python3 runAll.py
 
-## Step 6##
+## Step 6 ##
 
 Find the best solution of the solver with:
 
@@ -49,7 +49,7 @@ This will create two new files in 'input_Folder':
  - chi.dat contains for each subfolder the minimal chi^2 value
  - min.dat contains the corresponding line of the 'output' file from the subfolders.
 
-## Step 7##
+## Step 7 ##
 
 Collect all data with:
 
