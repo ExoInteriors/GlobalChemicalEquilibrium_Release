@@ -14,12 +14,16 @@ H2_silicate           = 2.016
 H2O_silicate          = 18.01528
 CO_silicate           = 28.01
 CO2_silicate          = 44.0095
+FeO15_silicate       = 79.845
+FeSO4_silicate        = 151.908
+FeS_silicate          = 87.910 
 
 Fe_metal              = 55.847
 Si_metal              = 28.0855
 O_metal               = 15.9994
 H_metal               = 1.00794
 C_metal               = 12.011
+S_metal               = 32.065
 
 H2_gas                = 2.016
 CO_gas                = 28.01
@@ -32,3 +36,5 @@ Mg_gas                = 24.305
 SiO_gas               = 44.08
 Na_gas                = 22.98977
 SiH4_gas              = 32.12
+SO2_gas               = 64.066
+H2S_gas               = 34.082
