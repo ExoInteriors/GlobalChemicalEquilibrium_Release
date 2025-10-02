@@ -313,7 +313,7 @@ for v in variables:
 
 #print("MgO_silicate SiO2_silicate MgSiO3_silicate FeO_silicate FeSiO3_silicate Na2O_silicate Na2SiO3_silicate H2_silicate H2O_silicate CO_silicate CO2_silicate Fe_metal Si_metal O_metal H_metal C_metal H2_gas CO_gas CO2_gas CH4_gas O2_gas H2O_gas Fe_gas Mg_gas SiO_gas Na_gas Moles_atm Moles_silicate Moles_metal ", end="", file = f)
 
-print("Matm bulkCO bulkOSi bulkOH upperCO FeSi_bulk MgSi_bulk", end="", file = f)
+print("Matm bulkCO bulkOSi bulkOH upperCO FeSi_bulk MgSi_bulk ", end="", file = f)
 
 print("Fe_metal_massfrac C_metal_massfrac Si_metal_massfrac O_metal_massfrac H_metal_massfrac MgSiO3_silicate_massfrac MgO_silicate_massfrac SiO2_silicate_massfrac FeO_silicate_massfrac FeSiO3_silicate_massfrac H2_silicate_massfrac H2_gas_massfrac", end="", file = f)
 
