@@ -1,0 +1,23 @@
+# Ignore local Python virtual environment
+fgc/
+
+# Auto-generated C++ files from CTOT.py (in any subdirectory)
+**/parameters.h
+**/ctot.cpp
+**/grad_ctot.cpp
+**/calculate_P.cpp
+
+# Compiled object files and executables (in any subdirectory)
+**/*.o
+**/solver
+
+# Runtime output files from solver (in any subdirectory)
+**/output.dat
+**/info.dat
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
