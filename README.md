@@ -4,7 +4,7 @@
 Authors: Simon Grimm, Aaron Werlen, Caroline Dorn, Edward Young
 
 
-The release version only includes the standard version of the chemical network equations.
+The release version only includes the standard version and the carbon version of the chemical network equations.
 Other versions are available on request from the authors.
 
 
