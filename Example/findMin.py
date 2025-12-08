@@ -42,7 +42,10 @@ for s in sorted(subfolders):
 
 		for k in range(len(data[:,1])):
 		
-			print(data[k,ii], end=' ',file=mf)
+			if(k < 2):
+				print(int(data[k,ii]), end=' ',file=mf)
+			else:
+				print(data[k,ii], end=' ',file=mf)
 
 		print("",file=mf)
 	except:

@@ -141,7 +141,9 @@ filename = "%s/min.dat" % path
 df_result = pd.read_csv('%s/min.dat' % path, sep= ' ')
 df_result.columns = df_result.columns.str.strip('#')
 
-variables = list(df_result)[3:-1]
+variables = list(df_result)[2:-1]
+
+#print(variables)
 
 
 MgO_silicate     = df_result["MgO_silicate"].to_numpy()
@@ -191,7 +193,7 @@ df_param.columns = df_param.columns.str.strip('#')
 
 parameters = list(df_param)
 
-print(parameters)
+#print(parameters)
 
 
 nSi = df_param["nSi"].to_numpy()
@@ -240,11 +242,11 @@ grams_per_mole_atm += Na_gas  * mu_Na
 
 
 grams_per_mole_metal = 0.0 
-grams_per_mole_metal += Fe_metal  * mu_Fe
-grams_per_mole_metal += Si_metal  * mu_Si
-grams_per_mole_metal +=  C_metal  * mu_C
-grams_per_mole_metal += + O_metal * mu_O
-grams_per_mole_metal += + H_metal * mu_H
+grams_per_mole_metal += Fe_metal * mu_Fe
+grams_per_mole_metal += Si_metal * mu_Si
+grams_per_mole_metal += C_metal  * mu_C
+grams_per_mole_metal += O_metal  * mu_O
+grams_per_mole_metal += H_metal  * mu_H
 
 grams_per_mole_silicate = 0.0
 grams_per_mole_silicate += FeO_silicate     * mu_FeO
@@ -272,8 +274,8 @@ grams_atm      = molefrac_atm * grams_per_mole_atm  #actually grams_i/mole plane
 grams_silicate = molefrac_silicate * grams_per_mole_silicate
 grams_metal    = molefrac_metal * grams_per_mole_metal
 
-totalmass=grams_atm+grams_silicate+grams_metal
-Matm = grams_atm/totalmass
+totalmass = grams_atm + grams_silicate + grams_metal
+Matm = grams_atm / totalmass
 
 
 
@@ -292,7 +294,7 @@ FeO_silicate_massfrac    = FeO_silicate    * mu_FeO    * Moles_silicate / (total
 FeSiO3_silicate_massfrac = FeSiO3_silicate * mu_FeSiO3 * Moles_silicate / (totalmass * MolesTotal)
 H2_silicate_massfrac     = H2_silicate     * mu_H2     * Moles_silicate / (totalmass * MolesTotal)
 
-H2_gas_massfrac      = H2_gas *mu_H2 * Moles_atm / (totalmass * MolesTotal)
+H2_gas_massfrac      = H2_gas * mu_H2 * Moles_atm / (totalmass * MolesTotal)
 
 
 
