@@ -247,17 +247,17 @@ grams_per_mole_metal += + O_metal * mu_O
 grams_per_mole_metal += + H_metal * mu_H
 
 grams_per_mole_silicate = 0.0
-grams_per_mole_silicate = FeO_silicate     * mu_FeO
-grams_per_mole_silicate = SiO2_silicate    * mu_SiO2
-grams_per_mole_silicate = MgO_silicate     * mu_MgO
-grams_per_mole_silicate = MgSiO3_silicate  * mu_MgSiO3
-grams_per_mole_silicate = FeSiO3_silicate  * mu_FeSiO3
-grams_per_mole_silicate = Na2SiO3_silicate * mu_Na2SiO3
-grams_per_mole_silicate = Na2O_silicate    * mu_Na2O
-grams_per_mole_silicate = H2_silicate      * mu_H2
-grams_per_mole_silicate = H2O_silicate     * mu_H2O
-grams_per_mole_silicate = CO2_silicate     * mu_CO2
-grams_per_mole_silicate = CO_silicate      * mu_CO
+grams_per_mole_silicate += FeO_silicate     * mu_FeO
+grams_per_mole_silicate += SiO2_silicate    * mu_SiO2
+grams_per_mole_silicate += MgO_silicate     * mu_MgO
+grams_per_mole_silicate += MgSiO3_silicate  * mu_MgSiO3
+grams_per_mole_silicate += FeSiO3_silicate  * mu_FeSiO3
+grams_per_mole_silicate += Na2SiO3_silicate * mu_Na2SiO3
+grams_per_mole_silicate += Na2O_silicate    * mu_Na2O
+grams_per_mole_silicate += H2_silicate      * mu_H2
+grams_per_mole_silicate += H2O_silicate     * mu_H2O
+grams_per_mole_silicate += CO2_silicate     * mu_CO2
+grams_per_mole_silicate += CO_silicate      * mu_CO
 
 
 MolesTotal = Moles_atm + Moles_silicate + Moles_metal
