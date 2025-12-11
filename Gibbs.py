@@ -3,15 +3,11 @@ import sys
 from numpy import exp as exp
 from numpy import log
 from numpy import log10
-
-#Thermochemistry Data
-#From NIST (Condensed phase thermochemistry data)
-#https://webbook.nist.gov/chemistry/form-ser/
+from src.constants import R, log_to_ln
 
 
-
-log_to_ln = 2.302585093
-Rgas = 8.314462618153	# J /(mol K)
+# Thermochemistry Data (T values in K)
+# From NIST (Condensed phase thermochemistry data): https://webbook.nist.gov/chemistry/form-ser/
 
 
 #define Temprature values in K
@@ -211,6 +207,63 @@ def GibbsmeltSi(T):
 	H = 48.46997
 	#Reference	Chase, 1998
 	#Comment 	Data last reviewed in March, 1967
+
+	GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
+
+	return GT
+
+def GibbsmeltFeS(T):
+    '''
+    Gibbs free energy of formation of molten FeS, from NIST.
+    only applicable if(298.0 <= T and T <= 3800.0):
+    # troilite / molten FeS (Chase, 1998; data last reviewed September 1977)
+
+	Should be using silicate-specific values, but using liquid values for now since close enough
+    '''
+	if T <= 411.0:
+		DH = -101.6710
+		A = 9240.570
+		B = -55016.80
+		C = 121502.0
+		D = -93187.10
+		E = -99.35930
+		F = -1634.010
+		G = 22510.20
+		H = -101.6710
+	elif T <= 598.0:
+		DH = -101.6710
+		A = 72.36830
+		B = -0.060653
+		C = 0.120490
+		D = -0.079265
+		E = -0.000018
+		F = -122.1360
+		G = 149.9740
+		H = -101.6710
+	elif T <= 1463.0:
+		DH = -101.6710
+		A = 95.82780
+		B = -85.56150
+		C = 48.72030
+		D = -0.000101
+		E = 0.000071
+		F = -123.9460
+		G = 205.1350
+		H = -101.6710
+	#else:  # 1463.0 < T <= 3800.0
+	# liquid
+	else:
+		DH = -68.81140
+		A = 62.55080
+		B = 0.000002
+		C = -6.720620e-7
+		D = 6.411921e-8
+		E = -4.303011e-7
+		F = -84.51170
+		G = 166.2660
+		H = -68.81140
+		#Reference	Chase, 1998
+		#Comment 	Data last reviewed in September, 1977
 
 	GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
 
@@ -631,21 +684,71 @@ def GibbsgasSiH4(T):
 
 	return GT
 
+def GibbsgasSO2(T):
+	#gas
+	#if(298.0 <= T and T <= 6000.0):
+	if T <= 1200.0:
+		DH = -296.8422
+		A = 21.43049
+		B = 74.35094
+		C = -57.75217
+		D = 16.35534
+		E = 0.086731
+		F = -305.7688
+		G = 254.8872
+		H = -296.8422
+	else:
+		DH = -296.8422
+		A = 57.48188
+		B = 1.009328
+		C = -0.076290
+		D = 0.005174
+		E = -4.045401
+		F = -324.4140
+		G = 302.7798
+		H = -296.8422
+
+	GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
+
+	return GT
 
 
-GmeltMgSiO3 = np.vectorize(GibbsmeltMgSiO3)(TK)
-GmeltMgO = np.vectorize(GibbsmeltMgO)(TK)
-GmeltSiO2 = np.vectorize(GibbsmeltSiO2)(TK)
-GmeltFeO = np.vectorize(GibbsmeltFeO)(TK)
-GmeltNa2O = np.vectorize(GibbsmeltNa2O)(TK)
-GmeltNa2SiO3 = np.vectorize(GibbsmeltNa2SiO3)(TK)
-GmeltSi = np.vectorize(GibbsmeltSi)(TK)
-#FeSiO3_melt not in NIST
-#H2_melt  not in NIST
-#H2O_melt not in NIST
-#CO2_melt
-#CO_melt
+def GibbsgasH2S(T):
+	#gas
+	#if(298.0 <= T and T <= 6000.0):
+	if T <= 1400.0:
+		DH = -20.50202
+		A = 26.88412
+		B = 18.67809
+		C = 3.434203
+		D = -3.378702
+		E = 0.135882
+		F = -28.91211
+		G = 233.3747
+		H = -20.50202
+	else:
+		DH = -20.50202
+		A = 51.22136
+		B = 4.147486
+		C = -0.643566
+		D = 0.041621
+		E = -10.46385
+		F = -55.87606
+		G = 243.6900
+		H = -20.50202
 
+	GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
+
+	return GT
+
+GsilicateMgSiO3 = np.vectorize(GibbssilicateMgSiO3)(TK)
+GsilicateMgO = np.vectorize(GibbssilicateMgO)(TK)
+GsilicateSiO2 = np.vectorize(GibbssilicateSiO2)(TK)
+GsilicateFeO = np.vectorize(GibbssilicateFeO)(TK)
+GsilicateNa2O = np.vectorize(GibbssilicateNa2O)(TK)
+GsilicateNa2SiO3 = np.vectorize(GibbssilicateNa2SiO3)(TK)
+GsilicateSi = np.vectorize(GibbssilicateSi)(TK)
+GsilicateFeS = np.vectorize(GibbssilicateFeS)(TK)
 GmetalFe = np.vectorize(GibbsmetalFe)(TK)
 #Si_metal not in NIST
 #O_metal
@@ -663,7 +766,8 @@ GgasMg = np.vectorize(GibbsgasMg)(TK)
 GgasSiO = np.vectorize(GibbsgasSiO)(TK)
 GgasNa = np.vectorize(GibbsgasNa)(TK)
 GgasSiH4 = np.vectorize(GibbsgasSiH4)(TK)
-
+GgasSO2 = np.vectorize(GibbsgasSO2)(TK)
+GgasH2S = np.vectorize(GibbsgasH2S)(TK)
 
 
 
@@ -735,15 +839,94 @@ GmeltFeSiO3=GFerrosilite+dHfus+dCpfus*(TK-Tfus)-TK*(dSfus+dCpfus*log(TK/Tfus))
 G_Corgne=(-log_to_ln*(2.97-21800.0/TK))*Rgas*TK  #Corgne et al. (2008)
 GmetalSi=G_Corgne-2.0*GmeltFeO+2.0*GmetalFe+GmeltSiO2
 
+# FeO1.5 melt ------------------------------------------------------------------------------------------------------------
 
+def GibbssilicateFeO15(T, P=1):
+    '''
+    Gibbs free energy of formation of Fe2O3 using bivariate Chebyshev polynomial.
+    From MELTS
+    G(T,P) = sum_{i,j} c_{ij} T_i(x_T(T)) T_j(x_P(P))
+    where:
+        x_T = (2T - (T_min+T_max))/(T_max-T_min)
+        x_P = (2P - (P_min+P_max))/(P_max-P_min)
+    
+    Applicable range:
+        T: 1773.15 K to 3273.15 K
+        P: 1.0 bar to 60000.0 bar
+    
+    Vectorized to work with numpy arrays for T and scalar or array for P.
+    '''
+    # Convert inputs to numpy arrays
+    T = np.asarray(T)
+    P = np.asarray(P)
+    
+    # Parameters
+    T_min = 1773.15  # K
+    T_max = 3273.15  # K
+    P_min = 1.0      # bar
+    P_max = 60000.0  # bar
+    
+    # Normalize T and P to [-1, 1] range
+    x_T = (2.0 * T - (T_min + T_max)) / (T_max - T_min)
+    x_P = (2.0 * P - (P_min + P_max)) / (P_max - P_min)
+    
+    # Coefficients matrix (6x6: degree 0-5 for both T and P)
+    coefficients = np.array([
+        [-899245.3162422423, 1000172.4795652676, 558850.0743980928, 267405.1322826849, 85633.87640481528, 14711.66224697729],
+        [518597.7306283442, 1501433.4297460944, 968506.5749587199, 462753.31639876304, 148482.2972456756, 25515.368037455304],
+        [524563.650988519, 939857.9890235723, 620138.5598541821, 297976.34213911474, 95641.77489852293, 16448.46367451591],
+        [247629.69391370512, 431255.0640401143, 284608.4567349913, 136810.62401419887, 43939.284128506115, 7568.204032080384],
+        [73318.21846353424, 128140.5764531444, 84596.20218251407, 40694.069081834336, 13083.458653711641, 2259.388803883229],
+        [10784.031759050724, 18827.255288541488, 12438.314182414148, 5992.023138899037, 1930.6065191506639, 335.1283951742241]
+    ])
+    
+    # Evaluate the bivariate Chebyshev polynomial
+    # Handle broadcasting for T (array) and P (scalar or array)
+    if P.ndim == 0:  # P is scalar
+        G = np.zeros_like(T)
+        for i in range(6):  # degree_T = 5 means indices 0-5
+            T_i = _chebyshev_poly(x_T, i)
+            for j in range(6):  # degree_P = 5 means indices 0-5
+                T_j = _chebyshev_poly(x_P, j)  # scalar
+                G += coefficients[i, j] * T_i * T_j
+    else:  # P is array - need to handle broadcasting
+        # Reshape for broadcasting: T is (n,), P is (m,) -> result is (n, m)
+        x_T_expanded = x_T[:, np.newaxis]  # (n, 1)
+        x_P_expanded = x_P[np.newaxis, :]  # (1, m)
+        G = np.zeros((len(T), len(P)))
+        for i in range(6):
+            T_i = _chebyshev_poly(x_T_expanded, i)  # (n, 1)
+            for j in range(6):
+                T_j = _chebyshev_poly(x_P_expanded, j)  # (1, m)
+                G += coefficients[i, j] * T_i * T_j  # Broadcasting: (n, 1) * (1, m) -> (n, m)
+        return G
+    
+    GFe2O3 = G
+    GFeO15 = GFe2O3*0.5
+    return GFeO15
 
+GsilicateFeO15 = np.vectorize(GibbssilicateFeO15)(TK)
 
+# FeSO4 melt ------------------------------------------------------------------------------------------------------------
+def GibbssilicateFeSO4(T, G_FeS, G_FeO, G_FeO15):
+    """
+    Compute G(FeSO4) from:
+        G(FeSO4) = ΔG_rxn + G(FeS) + 8 G(FeO1.5) - 8 G(FeO)
+	
+	Constants on ∆G rxn from Nash et al 2019
+    """
+    logK = 8.7436e6 / T**2 - 27703.0 / T + 20.273
+    lnK = log_to_ln * logK
+    dG = -R * T * lnK
+    return dG + G_FeS + 8 * G_FeO15 - 8 * G_FeO
+
+GsilicateFeSO4 = np.vectorize(GibbssilicateFeSO4)(TK, GmeltFeS, GmeltFeO, GsilicateFeO15)
 
 ############################################################################################################################
 #List all reactions here
 ############################################################################################################################
 
-
+# this starts at 1 and Equations.py starts at 0
 #REACTION 1: Na2SiO3 = Na2O + SiO2 in melt
 G1=-(log_to_ln*(-1.33+13870.0/TK))*Rgas*TK  #Magma code line 809
 G1=-G1  #our reaction is reverse of that on line 809 of Magma code
@@ -899,7 +1082,32 @@ G20=-(Rgas*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
 
 #GRT20=np.zeros(num)
 
-GRT20=G20/(Rgas*TK)
+
+GRT20=G20/(R*TK)
+
+# REACTION 21:  2 FeO1.5 (silicate) = 2 FeO (silicate) + O2 (gas)
+G21=2.0*GsilicateFeO + GgasO2 - 2.0*GsilicateFeO15
+
+GRT21=G21/(R*TK)
+
+# REACTION 22: Fe_metal + S_metal = FeS_silicate
+# from Calvo, Siebert et al preprint
+# The full logC_S = -5.704 + 3.15*FeO_silicate + 0.12*MgO_silicate + 0.75*Na2O_silicate
+# is added in Equations.py via lngS calculation in f21
+lngS_base = log_to_ln * (-9.00 + 14530.0 / TK)
+G22 = -R * TK * lngS_base + GmetalFe
+
+GRT22=G22/(R*TK)
+
+# REACTION 24: H2S_gas + O2_gas = SO2_gas + H2_gas
+G24=GgasSO2+GgasH2-GgasH2S-GgasO2
+
+GRT24=G24/(R*TK)
+
+# REACTION 25: 3 H2 (silicate) + FeO (silicate) + SO2 (gas) = 3 H2O (silicate) + FeS (silicate)
+G25=3.0*GmeltH2O + GsilicateFeS - 3.0*GmeltH2 - GsilicateFeO- GgasSO2
+
+GRT25=G25/(R*TK)
 
 ############################################################################################################################
 # Print now the Gibbs energies into the file Gibbs.dat.
@@ -935,7 +1143,10 @@ print("GRT_16 =", GRT17[0], TK[0], file = gibbsFile)
 print("GRT_17 =", GRT18[0], TK[0], file = gibbsFile) 
 print("GRT_18 =", GRT19[0], TK[0], file = gibbsFile) 
 print("GRT_19 =", GRT20[1], TK[1], file = gibbsFile) 
-
+print("GRT_20 =", GRT21[0], TK[0], file = gibbsFile) 
+print("GRT_21 =", GRT22[1], TK[1], file = gibbsFile) 
+print("GRT_22 =", GRT24[0], TK[0], file = gibbsFile) 
+print("GRT_23 =", GRT25[0], TK[0], file = gibbsFile) 
 
 gibbsFile.close()
 
