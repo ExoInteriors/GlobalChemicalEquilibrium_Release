@@ -3,29 +3,9 @@ import sys
 from numpy import exp as exp
 from numpy import log
 from numpy import log10
-from src.constants import R, log_to_ln
-
-# Chebyshev helper (used by FeO1.5 MELTS fit)
-def _chebyshev_poly(x, n):
-    """
-    Evaluate Chebyshev polynomial of the first kind of order n at x.
-    Uses recurrence relation: T_n(x) = 2*x*T_{n-1}(x) - T_{n-2}(x)
-    with T_0(x) = 1, T_1(x) = x.
-    Vectorized to work with numpy arrays.
-    """
-    x = np.asarray(x)
-    if n == 0:
-        return np.ones_like(x)
-    elif n == 1:
-        return x
-    else:
-        T_prev = x
-        T_prev2 = np.ones_like(x)
-        for i in range(2, n + 1):
-            T_current = 2.0 * x * T_prev - T_prev2
-            T_prev2 = T_prev
-            T_prev = T_current
-        return T_prev
+from src.constants import R, log_to_ln  # gas constant and ln(10)
+# use R directly; alias for any legacy references
+Rgas = R
 
 
 # Thermochemistry Data (T values in K)
@@ -285,9 +265,54 @@ def GibbsmeltFeS(T):
         H = -68.81140
         #Reference	Chase, 1998
         #Comment 	Data last reviewed in September, 1977
+    if T <= 411.0:
+        DH = -101.6710
+        A = 9240.570
+        B = -55016.80
+        C = 121502.0
+        D = -93187.10
+        E = -99.35930
+        F = -1634.010
+        G = 22510.20
+        H = -101.6710
+    elif T <= 598.0:
+        DH = -101.6710
+        A = 72.36830
+        B = -0.060653
+        C = 0.120490
+        D = -0.079265
+        E = -0.000018
+        F = -122.1360
+        G = 149.9740
+        H = -101.6710
+    elif T <= 1463.0:
+        DH = -101.6710
+        A = 95.82780
+        B = -85.56150
+        C = 48.72030
+        D = -0.000101
+        E = 0.000071
+        F = -123.9460
+        G = 205.1350
+        H = -101.6710
+    else:
+        # 1463.0 < T <= 3800.0
+        DH = -68.81140
+        A = 62.55080
+        B = 0.000002
+        C = -6.720620e-7
+        D = 6.411921e-8
+        E = -4.303011e-7
+        F = -84.51170
+        G = 166.2660
+        H = -68.81140
+        #Reference	Chase, 1998
+        #Comment 	Data last reviewed in September, 1977
 
     GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
+    GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
 
+    return GT
     return GT
 
 def GibbsmeltH2O(T):
@@ -819,7 +844,7 @@ GmeltH2 = (a_H2*TK**2 + b_H2*TK + c_H2)
 # obtained by difference from solubility calibration, e.g., Moore et al. (1998)
 # rxn is H2O gas = H2O melt, Grxn = GmeltH2O-GgasH2O
 #std state values are -Hrxn/R = 2565+/- 362, Srxn/R = -14.21+/- 0.54, lnKeq=2565/T -14.21
-G_meltH2O_vaporH2O = -R*TK*(2565.0/TK -14.21)  #Rxn G for H2O vapor = H2O melt for xH2O
+G_meltH2O_vaporH2O = -Rgas*TK*(2565.0/TK -14.21)  #Rxn G for H2O vapor = H2O melt for xH2O
 # H2O std state in oxide/melt melt by difference
 GmeltH2O=G_meltH2O_vaporH2O + GgasH2O
 
@@ -861,6 +886,29 @@ G_Corgne=(-log_to_ln*(2.97-21800.0/TK))*R*TK  #Corgne et al. (2008)
 GmetalSi=G_Corgne-2.0*GmeltFeO+2.0*GmetalFe+GmeltSiO2
 
 # FeO1.5 melt ------------------------------------------------------------------------------------------------------------
+
+
+def _chebyshev_poly(x, n):
+    """
+    Evaluate Chebyshev polynomial of the first kind of order n at x.
+    Uses recurrence relation: T_n(x) = 2*x*T_{n-1}(x) - T_{n-2}(x)
+    with T_0(x) = 1, T_1(x) = x
+    
+    Vectorized to work with numpy arrays.
+    """
+    x = np.asarray(x)
+    if n == 0:
+        return np.ones_like(x)
+    elif n == 1:
+        return x
+    else:
+        T_prev = x
+        T_prev2 = np.ones_like(x)
+        for i in range(2, n + 1):
+            T_current = 2.0 * x * T_prev - T_prev2
+            T_prev2 = T_prev
+            T_prev = T_current
+        return T_prev
 
 def GibbsmeltFeO15(T, P=1):
     '''
@@ -933,8 +981,8 @@ def GibbsmeltFeSO4(T, G_FeS, G_FeO, G_FeO15):
     """
     Compute G(FeSO4) from:
         G(FeSO4) = ΔG_rxn + G(FeS) + 8 G(FeO1.5) - 8 G(FeO)
-	
-	Constants on ∆G rxn from Nash et al 2019
+
+    Constants on ∆G rxn from Nash et al 2019
     """
     logK = 8.7436e6 / T**2 - 27703.0 / T + 20.273
     lnK = log_to_ln * logK
@@ -979,6 +1027,7 @@ GRT4=G4/(R*TK)
 
 
 
+#REACTION 5: 2H metal = H2,melt
 #REACTION 5: 2H metal = H2,melt
 G5=GmeltH2-2.0*GmetalH
 
@@ -1043,11 +1092,13 @@ GRT14=G14/(R*TK)
 
 
 #REACTION 15: H2,gas = H2,melt
+#REACTION 15: H2,gas = H2,melt
 G15=GmeltH2-GgasH2  #Self consistent with above
 
 GRT15=G15/(R*TK)
 
 
+#REACTION 16: H2Ogas = H2Omelt
 #REACTION 16: H2Ogas = H2Omelt
 G16=GmeltH2O-GgasH2O  #Self consistent with above
 
@@ -1108,11 +1159,15 @@ GRT20=G20/(R*TK)
 
 # REACTION 21:  2 FeO1.5 (melt) = 2 FeO (melt) + O2 (gas)
 G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
+# REACTION 21:  2 FeO1.5 (melt) = 2 FeO (melt) + O2 (gas)
+G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 
 GRT21=G21/(R*TK)
 
 # REACTION 22: Fe_metal + S_metal = FeS_melt
+# REACTION 22: Fe_metal + S_metal = FeS_melt
 # from Calvo, Siebert et al preprint
+# The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
 # The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
 # is added in Equations.py via lngS calculation in f21
 lngS_base = log_to_ln * (-9.00 + 14530.0 / TK)
@@ -1125,6 +1180,8 @@ G24=GgasSO2+GgasH2-GgasH2S-GgasO2
 
 GRT24=G24/(R*TK)
 
+# REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
+G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
 # REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
 G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
 

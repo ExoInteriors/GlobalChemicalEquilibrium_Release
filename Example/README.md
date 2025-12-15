@@ -1,5 +1,40 @@
 # How to run parameter studies #
 
+## One-shot pipeline ##
+
+You can run the entire workflow with a single command:
+
+```
+python3 Example/run_pipeline.py
+
+Set any relevant parameters in create.py before running.
+```
+
+Key switches in `run_pipeline.py`:
+- `MAKE_NEW_FOLDERS`: if True, clears and recreates `input_Folder` before running.
+- `JUST_PLOTS`: if True, skips all compute steps and only regenerates plots from existing results.
+- `SULFUR`: if False, disables sulfur in `create.py` (sets chondritic S to zero and skips sulfur sweep).
+
+The pipeline performs, in order (unless `JUST_PLOTS` is True):
+1) `create()` – generates inputs (respects `SULFUR` flag).
+2) `copy_inputs()` – copies solver/param/Gibbs into each case.
+3) `run_all()` – runs solver across cases (parallelized).
+4) `find_min()` – finds best solutions.
+5) `get_results()` – aggregates outputs.
+6) `plot_results()` – writes plots to `input_Folder/plots/`.
+
+Outputs (inputs, results, plots) are written under `input_Folder_{version}/`.
+
+### Version selection
+
+- `version` should match an existing version directory (e.g., `Sulfur_Version`, `Carbon_Version`).
+- The pipeline uses that directory’s solver, `param.dat`, `chem_input.dat`, and `Gibbs.dat`.
+- Sulfur is enabled automatically when `version` contains `Sulfur_Version`; otherwise sulfur is off.
+
+**Important:** Before running the top-level pipeline in `Example/`, ensure the solver artifacts for that version have been built. You typically run the version-specific pipeline (e.g., in `Carbon_Version/`) first to produce the solver binary and associated files. Check that `Carbon_Version/solver` (or the selected version’s solver) exists and is up to date.
+
+Otherwise, can be run with the following steps:
+
 ## Step 1 ##
 
  - Set parameters ranges in the 'create.py' file.

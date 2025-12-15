@@ -23,27 +23,6 @@ def select_scaling_constants(planet_type = 'Fe0675_MgSiO3_0325'):
     Data from Seager et al. (2007).
     """
     constants = {
-        'Fe_gamma_polytropic': {
-            'm1': 5.80,   # Earth masses
-            'r1': 2.52,   # Earth radii
-            'k1': -0.209490,
-            'k2': 0.0804,
-            'k3': 0.394
-        },
-        'MgSiO3_polytropic': {
-            'm1': 10.55,
-            'r1': 3.90,
-            'k1': -0.209594,
-            'k2': 0.0799,
-            'k3': 0.413
-        },
-        'H2O_polytropic': {
-            'm1': 5.52,
-            'r1': 4.43,
-            'k1': -0.209396,
-            'k2': 0.0807,
-            'k3': 0.375
-        },
         'Fe_gamma': {
             'm1': 4.34,
             'r1': 2.23,
@@ -55,13 +34,6 @@ def select_scaling_constants(planet_type = 'Fe0675_MgSiO3_0325'):
             'm1': 7.38,
             'r1': 3.58,
             'k1': -0.20945,  # Default values
-            'k2': 0.0804,
-            'k3': 0.394
-        },
-        'H2O': {
-            'm1': 8.16,
-            'r1': 4.73,
-            'k1': -0.20945,  # Using default values
             'k2': 0.0804,
             'k3': 0.394
         },
@@ -79,27 +51,6 @@ def select_scaling_constants(planet_type = 'Fe0675_MgSiO3_0325'):
             'k2': 0.0804,
             'k3': 0.394
         },
-        'Fe0225_MgSiO3_0525_H2O_025': {
-            'm1': 6.41,
-            'r1': 3.63,
-            'k1': -0.20945,  # Using default values
-            'k2': 0.0804,
-            'k3': 0.394
-        },
-        'Fe0065_MgSiO3_0485_H2O_045': {
-            'm1': 6.88,
-            'r1': 4.02,
-            'k1': -0.20945,  # Using default values
-            'k2': 0.0804,
-            'k3': 0.394
-        },
-        'Fe003_MgSiO3_022_H2O_075': {
-            'm1': 7.63,
-            'r1': 4.42,
-            'k1': -0.20945,  # Using default values
-            'k2': 0.0804,
-            'k3': 0.394
-        }
     }
     
     return constants[planet_type]

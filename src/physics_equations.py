@@ -51,5 +51,5 @@ def get_P_SME(M_p_earth, P_AMOI, percent=0.3, planet_type=None, version='Sulfur'
         planet_type = composition_from_chem_input(str(chem_input_path))
     
     P_c = central_pressure(M_p_earth, planet_type)
-    P_SME_value = P_c + P_AMOI * percent
+    P_SME_value = P_AMOI + percent * (P_c - P_AMOI)
     return P_SME_value
