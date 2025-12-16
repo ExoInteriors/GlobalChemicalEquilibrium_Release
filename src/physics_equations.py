@@ -1,8 +1,7 @@
 import numpy as np
 import sympy as sy
 from sympy import log as sympy_log
-from src.constants import G, M_earth, R_earth, select_scaling_constants, composition_from_chem_input
-from src.variables import repo_root
+from src.constants import G, M_earth, R_earth, select_scaling_constants, composition_from_chem_input, repo_root
 
 
 def radius_seager_solid(M_p_earth, planet_type=None):

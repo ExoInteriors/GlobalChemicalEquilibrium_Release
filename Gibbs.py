@@ -5,6 +5,28 @@ from numpy import log
 from numpy import log10
 from src.constants import R, log_to_ln
 
+# Chebyshev helper (used by FeO1.5 MELTS fit)
+def _chebyshev_poly(x, n):
+    """
+    Evaluate Chebyshev polynomial of the first kind of order n at x.
+    Uses recurrence relation: T_n(x) = 2*x*T_{n-1}(x) - T_{n-2}(x)
+    with T_0(x) = 1, T_1(x) = x.
+    Vectorized to work with numpy arrays.
+    """
+    x = np.asarray(x)
+    if n == 0:
+        return np.ones_like(x)
+    elif n == 1:
+        return x
+    else:
+        T_prev = x
+        T_prev2 = np.ones_like(x)
+        for i in range(2, n + 1):
+            T_current = 2.0 * x * T_prev - T_prev2
+            T_prev2 = T_prev
+            T_prev = T_current
+        return T_prev
+
 
 # Thermochemistry Data (T values in K)
 # From NIST (Condensed phase thermochemistry data): https://webbook.nist.gov/chemistry/form-ser/
@@ -13,18 +35,18 @@ from src.constants import R, log_to_ln
 #define Temprature values in K
 if(len(sys.argv) <= 1):
 
-	print("No temperatures specified, use default values")
+    print("No temperatures specified, use default values")
 
-	#TK = np.arange(1300, 3000, (3000.0 - 1300.0) / 199.0)
-	TK = np.arange(1300, 4500, (4500.0 - 1300.0) / 199.0)
+    #TK = np.arange(1300, 3000, (3000.0 - 1300.0) / 199.0)
+    TK = np.arange(1300, 4500, (4500.0 - 1300.0) / 199.0)
 
 else:
 
-	#read in T_AMOI and T_SME
-	TK = np.array([])
-	for i in range(1, len(sys.argv)):
-		v = sys.argv[i]
-		TK = np.append(TK, float(v))
+    #read in T_AMOI and T_SME
+    TK = np.array([])
+    for i in range(1, len(sys.argv)):
+        v = sys.argv[i]
+        TK = np.append(TK, float(v))
 
 
 print("Calculate the Gibbs Energies for the temperatures: ")
@@ -42,18 +64,18 @@ print(TK)
 #output:
 #Return the Gibbs free Energy of formation at temperature TK and 1 bar
 def Gibbs(TK, DH, a, b, c, d, e, f, g, h):
-	T = TK / 1000.0
-	#H^0, standard enthalpy (kJ/mol)
-	H = DH + a * T + b / 2.0 * T**2 + c / 3.0 * T**3 + d / 4.0 * T**4 - e / T + f - h
-	H *= 1000.0 #convert from kJ/mol to J/mol
-	#S^0. standard entropy (J/ (mol * K))
-	S = a * log(T) + b * T + c / 2.0 * T**2 + d / 3.0 * T**3 - e/(2.0 * T**2) + g
+    T = TK / 1000.0
+    #H^0, standard enthalpy (kJ/mol)
+    H = DH + a * T + b / 2.0 * T**2 + c / 3.0 * T**3 + d / 4.0 * T**4 - e / T + f - h
+    H *= 1000.0 #convert from kJ/mol to J/mol
+    #S^0. standard entropy (J/ (mol * K))
+    S = a * log(T) + b * T + c / 2.0 * T**2 + d / 3.0 * T**3 - e/(2.0 * T**2) + g
 
-	#Gibbs free energy
-	G = H - T * S * 1000.0
-	#G in J / mol
+    #Gibbs free energy
+    G = H - T * S * 1000.0
+    #G in J / mol
 
-	return G
+    return G
 
 
 def GibbsmeltMgSiO3(T):
@@ -218,56 +240,55 @@ def GibbsmeltFeS(T):
     only applicable if(298.0 <= T and T <= 3800.0):
     # troilite / molten FeS (Chase, 1998; data last reviewed September 1977)
 
-	Should be using silicate-specific values, but using liquid values for now since close enough
+    Should be using melt-specific values, but using liquid values for now since close enough
     '''
-	if T <= 411.0:
-		DH = -101.6710
-		A = 9240.570
-		B = -55016.80
-		C = 121502.0
-		D = -93187.10
-		E = -99.35930
-		F = -1634.010
-		G = 22510.20
-		H = -101.6710
-	elif T <= 598.0:
-		DH = -101.6710
-		A = 72.36830
-		B = -0.060653
-		C = 0.120490
-		D = -0.079265
-		E = -0.000018
-		F = -122.1360
-		G = 149.9740
-		H = -101.6710
-	elif T <= 1463.0:
-		DH = -101.6710
-		A = 95.82780
-		B = -85.56150
-		C = 48.72030
-		D = -0.000101
-		E = 0.000071
-		F = -123.9460
-		G = 205.1350
-		H = -101.6710
-	#else:  # 1463.0 < T <= 3800.0
-	# liquid
-	else:
-		DH = -68.81140
-		A = 62.55080
-		B = 0.000002
-		C = -6.720620e-7
-		D = 6.411921e-8
-		E = -4.303011e-7
-		F = -84.51170
-		G = 166.2660
-		H = -68.81140
-		#Reference	Chase, 1998
-		#Comment 	Data last reviewed in September, 1977
+    if T <= 411.0:
+        DH = -101.6710
+        A = 9240.570
+        B = -55016.80
+        C = 121502.0
+        D = -93187.10
+        E = -99.35930
+        F = -1634.010
+        G = 22510.20
+        H = -101.6710
+    elif T <= 598.0:
+        DH = -101.6710
+        A = 72.36830
+        B = -0.060653
+        C = 0.120490
+        D = -0.079265
+        E = -0.000018
+        F = -122.1360
+        G = 149.9740
+        H = -101.6710
+    elif T <= 1463.0:
+        DH = -101.6710
+        A = 95.82780
+        B = -85.56150
+        C = 48.72030
+        D = -0.000101
+        E = 0.000071
+        F = -123.9460
+        G = 205.1350
+        H = -101.6710
+    else:
+        # 1463.0 < T <= 3800.0
+        DH = -68.81140
+        A = 62.55080
+        B = 0.000002
+        C = -6.720620e-7
+        D = 6.411921e-8
+        E = -4.303011e-7
+        F = -84.51170
+        G = 166.2660
+        H = -68.81140
+        #Reference	Chase, 1998
+        #Comment 	Data last reviewed in September, 1977
 
-	GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
+    GT = Gibbs(T, DH, A, B, C, D, E, F, G, H)
 
-	return GT
+    return GT
 
 def GibbsmeltH2O(T):
 	#liquid
@@ -741,14 +762,14 @@ def GibbsgasH2S(T):
 
 	return GT
 
-GsilicateMgSiO3 = np.vectorize(GibbssilicateMgSiO3)(TK)
-GsilicateMgO = np.vectorize(GibbssilicateMgO)(TK)
-GsilicateSiO2 = np.vectorize(GibbssilicateSiO2)(TK)
-GsilicateFeO = np.vectorize(GibbssilicateFeO)(TK)
-GsilicateNa2O = np.vectorize(GibbssilicateNa2O)(TK)
-GsilicateNa2SiO3 = np.vectorize(GibbssilicateNa2SiO3)(TK)
-GsilicateSi = np.vectorize(GibbssilicateSi)(TK)
-GsilicateFeS = np.vectorize(GibbssilicateFeS)(TK)
+GmeltMgSiO3 = np.vectorize(GibbsmeltMgSiO3)(TK)
+GmeltMgO = np.vectorize(GibbsmeltMgO)(TK)
+GmeltSiO2 = np.vectorize(GibbsmeltSiO2)(TK)
+GmeltFeO = np.vectorize(GibbsmeltFeO)(TK)
+GmeltNa2O = np.vectorize(GibbsmeltNa2O)(TK)
+GmeltNa2SiO3 = np.vectorize(GibbsmeltNa2SiO3)(TK)
+GmeltSi = np.vectorize(GibbsmeltSi)(TK)
+GmeltFeS = np.vectorize(GibbsmeltFeS)(TK)
 GmetalFe = np.vectorize(GibbsmetalFe)(TK)
 #Si_metal not in NIST
 #O_metal
@@ -778,7 +799,7 @@ GgasH2S = np.vectorize(GibbsgasH2S)(TK)
 # H2 melt
 
 #lnk=-12.5-0.76*1.0e-4*1.0  #Hirschmann with P in bar, his in GPa, here at 1 bar
-#G_meltH2_gasH2=-Rgas*TK*lnk   #Delta G of the Hirschmann reaction at 1 bar
+#G_meltH2_gasH2=-R*TK*lnk   #Delta G of the Hirschmann reaction at 1 bar
     
 #GmeltH2=G_meltH2_gasH2+GgasH2  #apparent free energy of formation of H2 in melt by difference
 
@@ -798,8 +819,8 @@ GmeltH2 = (a_H2*TK**2 + b_H2*TK + c_H2)
 # obtained by difference from solubility calibration, e.g., Moore et al. (1998)
 # rxn is H2O gas = H2O melt, Grxn = GmeltH2O-GgasH2O
 #std state values are -Hrxn/R = 2565+/- 362, Srxn/R = -14.21+/- 0.54, lnKeq=2565/T -14.21
-G_meltH2O_vaporH2O = -Rgas*TK*(2565.0/TK -14.21)  #Rxn G for H2O vapor = H2O melt for xH2O
-# H2O std state in oxide/silicate melt by difference
+G_meltH2O_vaporH2O = -R*TK*(2565.0/TK -14.21)  #Rxn G for H2O vapor = H2O melt for xH2O
+# H2O std state in oxide/melt melt by difference
 GmeltH2O=G_meltH2O_vaporH2O + GgasH2O
 
 
@@ -836,12 +857,12 @@ GmeltFeSiO3=GFerrosilite+dHfus+dCpfus*(TK-Tfus)-TK*(dSfus+dCpfus*log(TK/Tfus))
 
 # Si metal ----------------------------------------------------------------------------------------------------------------
 
-G_Corgne=(-log_to_ln*(2.97-21800.0/TK))*Rgas*TK  #Corgne et al. (2008)
+G_Corgne=(-log_to_ln*(2.97-21800.0/TK))*R*TK  #Corgne et al. (2008)
 GmetalSi=G_Corgne-2.0*GmeltFeO+2.0*GmetalFe+GmeltSiO2
 
 # FeO1.5 melt ------------------------------------------------------------------------------------------------------------
 
-def GibbssilicateFeO15(T, P=1):
+def GibbsmeltFeO15(T, P=1):
     '''
     Gibbs free energy of formation of Fe2O3 using bivariate Chebyshev polynomial.
     From MELTS
@@ -905,10 +926,10 @@ def GibbssilicateFeO15(T, P=1):
     GFeO15 = GFe2O3*0.5
     return GFeO15
 
-GsilicateFeO15 = np.vectorize(GibbssilicateFeO15)(TK)
+GmeltFeO15 = np.vectorize(GibbsmeltFeO15)(TK)
 
 # FeSO4 melt ------------------------------------------------------------------------------------------------------------
-def GibbssilicateFeSO4(T, G_FeS, G_FeO, G_FeO15):
+def GibbsmeltFeSO4(T, G_FeS, G_FeO, G_FeO15):
     """
     Compute G(FeSO4) from:
         G(FeSO4) = ΔG_rxn + G(FeS) + 8 G(FeO1.5) - 8 G(FeO)
@@ -920,7 +941,7 @@ def GibbssilicateFeSO4(T, G_FeS, G_FeO, G_FeO15):
     dG = -R * T * lnK
     return dG + G_FeS + 8 * G_FeO15 - 8 * G_FeO
 
-GsilicateFeSO4 = np.vectorize(GibbssilicateFeSO4)(TK, GmeltFeS, GmeltFeO, GsilicateFeO15)
+GmeltFeSO4 = np.vectorize(GibbsmeltFeSO4)(TK, GmeltFeS, GmeltFeO, GmeltFeO15)
 
 ############################################################################################################################
 #List all reactions here
@@ -928,133 +949,133 @@ GsilicateFeSO4 = np.vectorize(GibbssilicateFeSO4)(TK, GmeltFeS, GmeltFeO, Gsilic
 
 # this starts at 1 and Equations.py starts at 0
 #REACTION 1: Na2SiO3 = Na2O + SiO2 in melt
-G1=-(log_to_ln*(-1.33+13870.0/TK))*Rgas*TK  #Magma code line 809
+G1=-(log_to_ln*(-1.33+13870.0/TK))*R*TK  #Magma code line 809
 G1=-G1  #our reaction is reverse of that on line 809 of Magma code
 
-GRT1=G1/(Rgas*TK)
+GRT1=G1/(R*TK)
 
 
 
 #REACTION 2: 1/2SiO2 + Fe_metal = FeO + 1/2Si metal, in melt
 G2=0.5*GmetalSi+GmeltFeO-GmetalFe-0.5*GmeltSiO2
 
-GRT2=G2/(Rgas*TK)
+GRT2=G2/(R*TK)
 
 
 #REACTION 3: MgSiO3 = MgO + SiO2 melt
-#G3=-(log_to_ln*(0.42+2329.0/TK))*Rgas*TK
+#G3=-(log_to_ln*(0.42+2329.0/TK))*R*TK
 G3=GmeltSiO2+GmeltMgO-GmeltMgSiO3
 
-GRT3=G3/(Rgas*TK)
+GRT3=G3/(R*TK)
 
 
 #REACTION 4: O metal + 1/2 Si metal = 1/2 SiO2
 #G for FeO=Fe+O Badro et al. 2015 with correction for typo sign error
 # for the H/R term confirmed by Julien Siebert (Pers. comm.)
-G_ox_metal=-log_to_ln*(2.736-11439.0/TK)*Rgas*TK
+G_ox_metal=-log_to_ln*(2.736-11439.0/TK)*R*TK
 G4=-(G_ox_metal+G2) #negative sum of Gs for rxn 2 and FeO=Fe+O in Badro et al. 2015
 
-GRT4=G4/(Rgas*TK)
+GRT4=G4/(R*TK)
 
 
 
-#REACTION 5: 2H metal = H2,silicate
+#REACTION 5: 2H metal = H2,melt
 G5=GmeltH2-2.0*GmetalH
 
-GRT5=G5/(Rgas*TK)
+GRT5=G5/(R*TK)
 
 
 #REACTION 6: FeSiO3 = FeO + SiO2 in melt
-G6magma=-log_to_ln*Rgas*TK*(-0.63+3103.0/TK)  #Magma code line 653
+G6magma=-log_to_ln*R*TK*(-0.63+3103.0/TK)  #Magma code line 653
 G6magma=-G6magma  #reverse reaction given on line 653 of Magma code
 G6=G6magma  #on this reaction Magma code is more stable
 
-GRT6=G6/(Rgas*TK)
+GRT6=G6/(R*TK)
 
 
 #REACTION 7: 2H2O melt + Si metal = SiO2 melt + 2H2 melt
 G7=2.0*GmeltH2+GmeltSiO2-GmetalSi-2.0*GmeltH2O
 
-GRT7=G7/(Rgas*TK)
+GRT7=G7/(R*TK)
 
 
 
 #REACTION 8: COgas + 1/2O2,gas = CO2,gas
 G8=GgasCO2-GgasCO-0.5*GgasO2
 
-GRT8=G8/(Rgas*TK)
+GRT8=G8/(R*TK)
 
 
 #REACTION 9: CH4,gas + 1/2O2,gas = 2H2,gas + COgas
 G9=2.0*GgasH2+GgasCO-GgasCH4-0.5*GgasO2
     
-GRT9=G9/(Rgas*TK)
+GRT9=G9/(R*TK)
 
 
 
 #REACTION 10: H2,gas + 1/2O2,gas = H2Ogas
 G10=GgasH2O-0.5*GgasO2-GgasH2
 
-GRT10=G10/(Rgas*TK)
+GRT10=G10/(R*TK)
 
 
 #REACTION 11:  FeO = Fegas + 1/2O2,gas
 G11=0.5*GgasO2+GgasFe-GmeltFeO
 
-GRT11=G11/(Rgas*TK)
+GRT11=G11/(R*TK)
 
 #REACTION 12: MgO = Mg,gas + 1/2O2,gas
 G12=0.5*GgasO2+GgasMg-GmeltMgO
 
-GRT12=G12/(Rgas*TK)
+GRT12=G12/(R*TK)
 
 
 #REACTION 13: SiO2 = SiO,gas +1/2O2
 G13=0.5*GgasO2+GgasSiO-GmeltSiO2
 
-GRT13=G13/(Rgas*TK)
+GRT13=G13/(R*TK)
 
 
 #REACTION 14: Na2O = 2Na gas + 1/2O2
 G14=0.5*GgasO2+2.0*GgasNa-GmeltNa2O
 
-GRT14=G14/(Rgas*TK)
+GRT14=G14/(R*TK)
 
 
-#REACTION 15: H2,gas = H2,silicate
+#REACTION 15: H2,gas = H2,melt
 G15=GmeltH2-GgasH2  #Self consistent with above
 
-GRT15=G15/(Rgas*TK)
+GRT15=G15/(R*TK)
 
 
-#REACTION 16: H2Ogas = H2Osilicate
+#REACTION 16: H2Ogas = H2Omelt
 G16=GmeltH2O-GgasH2O  #Self consistent with above
 
-GRT16=G16/(Rgas*TK)
+GRT16=G16/(R*TK)
 
 
 
 #REACTION 17: COgas = CO melt
 # that CO solubility is about 1/3 that of CO2 (see below for G18)
 G18=5200.0-TK*(-119.77)
-logK18=-G18/(Rgas*TK*log_to_ln)
+logK18=-G18/(R*TK*log_to_ln)
 logK17=logK18-log10(3.0)
-G17=-Rgas*TK*log_to_ln*logK17
+G17=-R*TK*log_to_ln*logK17
 
-GRT17=G17/(Rgas*TK)
+GRT17=G17/(R*TK)
 
 
 #REACTION 18: CO2,gas = CO2,melt
 G18=5200.0-TK*(-119.77)
 
-GRT18=G18/(Rgas*TK)
+GRT18=G18/(R*TK)
 
 
 
 #REACTION 19: SiO + 2H2 = SiH4 + 1/2O2 in vapor phase
 G19=0.5*GgasO2 + GgasSiH4 -2.0*GgasH2 - GgasSiO  #Self consistent with above
 
-GRT19=G19/(Rgas*TK)
+GRT19=G19/(R*TK)
 
 
 
@@ -1070,29 +1091,29 @@ G20scaling=1.00 # Low value yields a Keq of unity, xC/xCO = 1, -2 yields Keq <<1
 
 # Option Grewal+2019:
 # P_20=P_Carbon # GPa
-# G20=G20scaling*(-Rgas*TK*(6170.0/TK + 3.07 + 763.0*P_20/TK) + GmetalO)  # Grewal (2019) + GmetalO
+# G20=G20scaling*(-R*TK*(6170.0/TK + 3.07 + 763.0*P_20/TK) + GmetalO)  # Grewal (2019) + GmetalO
 
 # Fischer 2020 version, convert wt% ratio to mole fraction ratio, and ln from log10, pressure decreases siderophile nature of C
 # Option Fischer:
 # P_20=P_Carbon # GPa
-# G20=G20scaling*(-(Rgas*TK*(2.303*(1.49+3000.0/TK-235.0*P_20/TK)+np.log(56.0/100)))+GmetalO) # Fischer (2020) + GmetalO
+# G20=G20scaling*(-(R*TK*(2.303*(1.49+3000.0/TK-235.0*P_20/TK)+np.log(56.0/100)))+GmetalO) # Fischer (2020) + GmetalO
 
 # Blanchard 2022 version, convert wt% ratio to mole fraction ratio, and ln from log10, no pressure dependence
-G20=-(Rgas*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
+G20=-(R*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
 
 #GRT20=np.zeros(num)
 
 
 GRT20=G20/(R*TK)
 
-# REACTION 21:  2 FeO1.5 (silicate) = 2 FeO (silicate) + O2 (gas)
-G21=2.0*GsilicateFeO + GgasO2 - 2.0*GsilicateFeO15
+# REACTION 21:  2 FeO1.5 (melt) = 2 FeO (melt) + O2 (gas)
+G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 
 GRT21=G21/(R*TK)
 
-# REACTION 22: Fe_metal + S_metal = FeS_silicate
+# REACTION 22: Fe_metal + S_metal = FeS_melt
 # from Calvo, Siebert et al preprint
-# The full logC_S = -5.704 + 3.15*FeO_silicate + 0.12*MgO_silicate + 0.75*Na2O_silicate
+# The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
 # is added in Equations.py via lngS calculation in f21
 lngS_base = log_to_ln * (-9.00 + 14530.0 / TK)
 G22 = -R * TK * lngS_base + GmetalFe
@@ -1104,8 +1125,8 @@ G24=GgasSO2+GgasH2-GgasH2S-GgasO2
 
 GRT24=G24/(R*TK)
 
-# REACTION 25: 3 H2 (silicate) + FeO (silicate) + SO2 (gas) = 3 H2O (silicate) + FeS (silicate)
-G25=3.0*GmeltH2O + GsilicateFeS - 3.0*GmeltH2 - GsilicateFeO- GgasSO2
+# REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
+G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
 
 GRT25=G25/(R*TK)
 
