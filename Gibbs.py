@@ -1175,17 +1175,15 @@ G22 = -R * TK * lngS_base + GmetalFe
 
 GRT22=G22/(R*TK)
 
-# REACTION 24: H2S_gas + O2_gas = SO2_gas + H2_gas
-G24=GgasSO2+GgasH2-GgasH2S-GgasO2
+# REACTION 23: H2S_gas + O2_gas = SO2_gas + H2_gas
+G23=GgasSO2+GgasH2-GgasH2S-GgasO2
+
+GRT23=G23/(R*TK)
+
+# REACTION 24: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
+G24=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
 
 GRT24=G24/(R*TK)
-
-# REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
-G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
-# REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
-G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
-
-GRT25=G25/(R*TK)
 
 ############################################################################################################################
 # Print now the Gibbs energies into the file Gibbs.dat.
@@ -1220,11 +1218,12 @@ print("GRT_15 =", GRT16[0], TK[0], file = gibbsFile)
 print("GRT_16 =", GRT17[0], TK[0], file = gibbsFile) 
 print("GRT_17 =", GRT18[0], TK[0], file = gibbsFile) 
 print("GRT_18 =", GRT19[0], TK[0], file = gibbsFile) 
-print("GRT_19 =", GRT20[1], TK[1], file = gibbsFile) 
-print("GRT_20 =", GRT21[0], TK[0], file = gibbsFile) 
-print("GRT_21 =", GRT22[1], TK[1], file = gibbsFile) 
-print("GRT_22 =", GRT24[0], TK[0], file = gibbsFile) 
-print("GRT_23 =", GRT25[0], TK[0], file = gibbsFile) 
+print("GRT_19 =", GRT19[0], TK[0], file = gibbsFile)
+print("GRT_20 =", GRT20[1], TK[1], file = gibbsFile)
+print("GRT_21 =", GRT21[0], TK[0], file = gibbsFile)
+print("GRT_22 =", GRT22[1], TK[1], file = gibbsFile)
+print("GRT_23 =", GRT23[0], TK[0], file = gibbsFile)
+print("GRT_24 =", GRT24[0], TK[0], file = gibbsFile)
 
 gibbsFile.close()
 
