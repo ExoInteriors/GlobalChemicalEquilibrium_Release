@@ -1154,20 +1154,15 @@ G20=-(R*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
 
 #GRT20=np.zeros(num)
 
-
 GRT20=G20/(R*TK)
 
-# REACTION 21:  2 FeO1.5 (melt) = 2 FeO (melt) + O2 (gas)
-G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 # REACTION 21:  2 FeO1.5 (melt) = 2 FeO (melt) + O2 (gas)
 G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 
 GRT21=G21/(R*TK)
 
 # REACTION 22: Fe_metal + S_metal = FeS_melt
-# REACTION 22: Fe_metal + S_metal = FeS_melt
 # from Calvo, Siebert et al preprint
-# The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
 # The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
 # is added in Equations.py via lngS calculation in f21
 lngS_base = log_to_ln * (-9.00 + 14530.0 / TK)
@@ -1175,15 +1170,19 @@ G22 = -R * TK * lngS_base + GmetalFe
 
 GRT22=G22/(R*TK)
 
-# REACTION 23: H2S_gas + O2_gas = SO2_gas + H2_gas
-G23=GgasSO2+GgasH2-GgasH2S-GgasO2
+# REACTION 23: 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas) = 2 FeSO4 (silicate) 
+G23 = 2.0*GmeltFeSO4 - 2.0*GmeltFeO - 2.0*GgasSO2 - GgasO2
+GRT23 = G23/(R*TK)
 
-GRT23=G23/(R*TK)
-
-# REACTION 24: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
-G24=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
+# REACTION 24: H2S_gas + O2_gas = SO2_gas + H2_gas
+G24=GgasSO2+GgasH2-GgasH2S-GgasO2
 
 GRT24=G24/(R*TK)
+
+# REACTION 25: 3 H2 (melt) + FeO (melt) + SO2 (gas) = 3 H2O (melt) + FeS (melt)
+G25=3.0*GmeltH2O + GmeltFeS - 3.0*GmeltH2 - GmeltFeO- GgasSO2
+
+GRT25=G25/(R*TK)
 
 ############################################################################################################################
 # Print now the Gibbs energies into the file Gibbs.dat.
@@ -1218,12 +1217,12 @@ print("GRT_15 =", GRT16[0], TK[0], file = gibbsFile)
 print("GRT_16 =", GRT17[0], TK[0], file = gibbsFile) 
 print("GRT_17 =", GRT18[0], TK[0], file = gibbsFile) 
 print("GRT_18 =", GRT19[0], TK[0], file = gibbsFile) 
-print("GRT_19 =", GRT19[0], TK[0], file = gibbsFile)
-print("GRT_20 =", GRT20[1], TK[1], file = gibbsFile)
-print("GRT_21 =", GRT21[0], TK[0], file = gibbsFile)
-print("GRT_22 =", GRT22[1], TK[1], file = gibbsFile)
-print("GRT_23 =", GRT23[0], TK[0], file = gibbsFile)
-print("GRT_24 =", GRT24[0], TK[0], file = gibbsFile)
+print("GRT_19 =", GRT20[1], TK[1], file = gibbsFile)
+print("GRT_20 =", GRT21[0], TK[0], file = gibbsFile)
+print("GRT_21 =", GRT22[1], TK[1], file = gibbsFile)
+print("GRT_22 =", GRT23[0], TK[0], file = gibbsFile)
+print("GRT_23 =", GRT24[0], TK[0], file = gibbsFile)
+print("GRT_24 =", GRT25[0], TK[0], file = gibbsFile)
 
 gibbsFile.close()
 
