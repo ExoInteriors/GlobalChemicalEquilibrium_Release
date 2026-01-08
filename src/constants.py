@@ -4,12 +4,16 @@ from pathlib import Path
 repo_root = Path(__file__).parent.parent
 
 R = 8.314462618153	# J /(mol K)
+
+# fitting coefficients for H2 silicate activity coefficient, from Gilmore & Stixrude (2025)
 tau = 4800
 ppi = -35.0
-# not sure what A, B, and W are; cant find in literature
 A = 622000
 B = -4950
+
+# Interaction parameter for H2O silicate activity coefficient, from Kovacevic et al. (2025)
 W = 74826
+
 G= 6.67430e-11  # gravitational constant [m^3 kg^-1 s^-2]
 M_earth = 5.972e24      # kg
 R_earth = 6.371e6       # m

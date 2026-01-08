@@ -17,6 +17,7 @@ CO2_silicate          = 44.0095
 FeO15_silicate       = 79.845
 FeSO4_silicate        = 151.908
 FeS_silicate          = 87.910 
+N2_silicate           = 28.0134
 
 Fe_metal              = 55.847
 Si_metal              = 28.0855
@@ -38,3 +39,6 @@ Na_gas                = 22.98977
 SiH4_gas              = 32.12
 SO2_gas               = 64.066
 H2S_gas               = 34.082
+N2_gas                = 28.0134
+NH3_gas               = 17.031
+HCN_gas               = 27.0253
