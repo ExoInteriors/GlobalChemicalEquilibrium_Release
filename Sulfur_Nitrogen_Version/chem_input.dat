@@ -1,0 +1,103 @@
+# Number of moles of elements
+
+nSi = 2127.8257694373788
+nMg = 2172.269428686956
+nO = 6465.721186091113 
+nFe = 2091.681663967841 
+nH = 29101.089527625125 
+nNa = 36.46660598348612
+nC = 12.062638292051037 
+nS = 15.062638292051037
+nN = 36.4
+# Other parameters
+
+Mplanet_Mearth = 5
+T_AMOI = 3000
+T_SME = 3500
+P_SME = 10
+Pstd = 1.0
+
+# Boundaries
+bound_MgO_silicate = 1.0e-30, 0.9999999999
+bound_SiO2_silicate = 1.0e-30, 0.9999999999
+bound_MgSiO3_silicate = 1.0e-30, 0.9999999999
+bound_FeO_silicate = 1.0e-30, 0.9999999999
+bound_FeSiO3_silicate = 1.0e-30, 0.9999999999
+bound_Na2O_silicate = 1.0e-30, 0.9999999999
+bound_Na2SiO3_silicate = 1.0e-30, 0.9999999999
+bound_H2_silicate = 1.0e-30, 0.9999999999
+bound_H2O_silicate = 1.0e-30, 0.9999999999
+bound_CO_silicate = 1.0e-30, 0.9999999999
+bound_CO2_silicate = 1.0e-30, 0.9999999999
+bound_FeO15_silicate = 1.0e-30, 0.9999999999
+bound_FeSO4_silicate = 1.0e-30, 0.9999999999
+bound_FeS_silicate = 1.0e-30, 0.9999999999
+bound_N2_silicate = 1.0e-30, 0.9999999999
+bound_Fe_metal = 1.0e-30, 0.9999999999
+bound_Si_metal = 1.0e-30, 0.9999999999
+bound_O_metal = 1.0e-30, 0.9999999999
+bound_H_metal = 1.0e-30, 0.9999999999
+bound_C_metal = 1.0e-30, 0.9999999999
+bound_S_metal = 1.0e-30, 0.9999999999
+bound_H2_gas = 1.0e-30, 0.9999999999
+bound_CO_gas = 1.0e-30, 0.9999999999
+bound_CO2_gas = 1.0e-30, 0.9999999999
+bound_CH4_gas = 1.0e-30, 0.9999999999
+bound_O2_gas = 1.0e-30, 0.9999999999
+bound_H2O_gas = 1.0e-30, 0.9999999999
+bound_Fe_gas = 1.0e-30, 0.9999999999
+bound_Mg_gas = 1.0e-30, 0.9999999999
+bound_SiO_gas = 1.0e-30, 0.9999999999
+bound_Na_gas = 1.0e-30, 0.9999999999
+bound_SiH4_gas = 1.0e-30, 0.9999999999
+bound_SO2_gas = 1.0e-30, 0.9999999999
+bound_H2S_gas = 1.0e-30, 0.9999999999
+bound_N2_gas = 1.0e-30, 0.9999999999
+bound_NH3_gas = 1.0e-30, 0.9999999999
+bound_HCN_gas = 1.0e-30, 0.9999999999
+bound_Moles_atm = 1.0e-30, 100000.0
+bound_Moles_silicate = 1.0e-30, 100000.0
+bound_Moles_metal = 1.0e-30, 100000.0
+
+
+# Priors
+prior_MgO_silicate = 0.1, 0.3
+prior_SiO2_silicate = 0.0, 1.0
+prior_MgSiO3_silicate = 0.0, 1.0
+prior_FeO_silicate = 0.0, 1.0
+prior_FeSiO3_silicate = 0.0, 1.0
+prior_Na2O_silicate = 0.0, 1.0
+prior_Na2SiO3_silicate = 0.0, 1.0
+prior_H2_silicate = 0.0, 1.0
+prior_H2O_silicate = 0.0, 1.0
+prior_CO_silicate = 0.0, 1.0
+prior_CO2_silicate = 0.0, 1.0
+prior_FeO15_silicate = 0.0, 1.0
+prior_FeSO4_silicate = 0.0, 1.0
+prior_FeS_silicate = 0.0, 1.0
+prior_N2_silicate = 0.0, 1.0
+prior_Fe_metal = 0.0, 1.0
+prior_Si_metal = 0.0, 1.0
+prior_O_metal = 0.0, 1.0
+prior_H_metal = 0.0, 1.0
+prior_C_metal = 0.0, 1.0
+prior_S_metal = 0.0, 1.0
+prior_H2_gas = 0.0, 1.0
+prior_CO_gas = 1e-3, 1e-2
+prior_CO2_gas = 1e-3, 1e-2
+prior_CH4_gas = 1e-3, 1e-2
+prior_O2_gas = 1e-3, 1e-2
+prior_H2O_gas = 1e-3, 1e-2
+prior_Fe_gas = 1e-3, 1e-2
+prior_Mg_gas = 1e-3, 1e-2
+prior_SiO_gas = 1e-3, 1e-2
+prior_Na_gas = 1e-3, 1e-2
+prior_SiH4_gas = 1e-3, 1e-2
+prior_SO2_gas = 1e-3, 1e-2
+prior_H2S_gas = 1e-3, 1e-2
+prior_N2_gas = 1e-3, 1e-2
+prior_NH3_gas = 1e-3, 1e-2
+prior_HCN_gas = 1e-3, 1e-2
+prior_Moles_atm = 100.0, 10000.0
+prior_Moles_silicate = 100.0, 10000.0
+prior_Moles_metal = 100.0, 10000.0
