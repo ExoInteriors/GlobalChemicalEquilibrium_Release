@@ -1156,7 +1156,7 @@ GRT18=G18/(R*TK)
 
 # ------------------------------------
 # Reaction 19: C (metal) + O (metal) <-> CO (silicate)
-GmetalO=0.5*GmeltSiO2-0.5*GmetalSi-G3 # metal O by difference from reaction 4
+GmetalO=0.5*GmeltSiO2-0.5*GmetalSi-G3 # metal O by difference from reaction 3
 G20scaling=1.00 # Low value yields a Keq of unity, xC/xCO = 1, -2 yields Keq <<1
 
 # Blanchard 2022 version, convert wt% ratio to mole fraction ratio, and ln from log10, no pressure dependence
