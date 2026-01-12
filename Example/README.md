@@ -1,5 +1,4 @@
 # How to run parameter studies #
-
 ## One-shot pipeline ##
 
 You can run the entire workflow with a single command:
@@ -10,10 +9,14 @@ python3 Example/run_pipeline.py
 Set any relevant parameters in create.py before running.
 ```
 
-Key switches in `run_pipeline.py`:
-- `MAKE_NEW_FOLDERS`: if True, clears and recreates `input_Folder` before running.
-- `JUST_PLOTS`: if True, skips all compute steps and only regenerates plots from existing results.
-- `SULFUR`: if False, disables sulfur in `create.py` (sets chondritic S to zero and skips sulfur sweep).
+Key parameters to set in run_pipeline.py:
+- `new_input_dir_prefix`: Name of your new results folder. By default, saves to '/results/<date>/<prefix>_<version>'
+- `params`: Parameters for the run on how the chemistry works. Modify by setting `params=GCEParams(param1=value1, param2=value2, ...)`.
+- `existing_input_dir`: Path to an existing input directory; useful if rerunning plots (points at specific results folders to rerun it).
+- `version`: Version to run, e.g. `'Sulfur_Version'`, `'Carbon_Version'`, `'Sulfur_Nitrogen_Version'`.
+- `just_plots`: If True, skips all compute steps and only regenerates plots from existing results.
+- `build`: If True, rebuilds the solver. Set this when changing versions (e.g. from Carbon to Sulfur).
+- `only_sulfur_plots`: If False, runs additional plots beyond the sulfur-specific ones.
 
 The pipeline performs, in order (unless `JUST_PLOTS` is True):
 1) `create()` – generates inputs (respects `SULFUR` flag).

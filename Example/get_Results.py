@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from src.constants import repo_root
 
-
 def get_results(path=None):
 	if path is None:
 		path = os.path.join(repo_root, 'input_Folder')
@@ -120,14 +119,23 @@ def get_results(path=None):
 	H_He = df_summary["iHHe mass fraction"].to_numpy()
 	Mg_Si = df_summary["iMgSi molar ratio"].to_numpy()
 	Fe_Si = df_summary["iFeSi molar ratio"].to_numpy()
+	if "itarSH_ratio" not in df_summary.columns:
+		raise KeyError("Summary file must contain 'itarSH_ratio'.")
+	itarSH = df_summary["itarSH_ratio"].to_numpy()
 	deltaT  = df_summary["ideltaT in K"].to_numpy()
-	T_SME = T_AMOI + deltaT
+	T_SME = np.asarray(df_summary.get("iT_SME in K", T_AMOI + deltaT))
+	Pstd = np.asarray(df_summary.get("Pstd", np.ones_like(M)))
+	P_SME = np.asarray(df_summary.get("P_SME", np.zeros_like(M)))
 
 	# -----------------------------------------------------------------
 	# read results file
 	# -----------------------------------------------------------------
-	df_result = pd.read_csv('%s/min.dat' % path, sep= ' ')
-	df_result.columns = df_result.columns.str.strip('#')
+	df_result = pd.read_csv('%s/min.dat' % path, sep=r"\s+")
+	df_result.columns = df_result.columns.str.strip('#').str.strip()
+	unnamed_cols = [col for col in df_result.columns if col.startswith("Unnamed")]
+	if unnamed_cols:
+		print(f"Warning: dropping unnamed columns from min.dat: {', '.join(unnamed_cols)}")
+		df_result = df_result.drop(columns=unnamed_cols)
 	chi2_series = df_result["chi^2"].to_numpy() if "chi^2" in df_result.columns else None
 	variables = [c for c in df_result.columns if c.strip() and c not in ("iteration","chain","chi^2")]
 
@@ -169,13 +177,14 @@ def get_results(path=None):
 		print(f"Warning: length mismatch between results ({len(df_result)}) and summary ({len(np.atleast_1d(M))}); truncating to {S}")
 		df_result = df_result.iloc[:S].reset_index(drop=True)
 		M = M[:S]; T_AMOI = T_AMOI[:S]; C_O = C_O[:S]; fWater = fWater[:S]; H_He = H_He[:S]; Mg_Si = Mg_Si[:S]; Fe_Si = Fe_Si[:S]; deltaT = deltaT[:S]; T_SME = T_SME[:S]
+		itarSH = itarSH[:S]
 	if chi2_series is not None:
 		chi2_series = chi2_series[:S]
 
 	# -----------------------------------------------------------------
 	# parameters file
-	df_param = pd.read_csv('%s/parametersAll.dat' % path, sep= ' ')
-	df_param.columns = df_param.columns.str.strip('#')
+	df_param = pd.read_csv('%s/parametersAll.dat' % path, sep=r"\s+")
+	df_param.columns = df_param.columns.str.strip('#').str.strip()
 	parameters = list(df_param)
 
 	nSi = df_param["nSi"].to_numpy()
@@ -267,8 +276,7 @@ def get_results(path=None):
 	f = open(filename, "w")
 
 	print("#index ", end="", file = f)
-
-	print("Planetmass T_AMOI CO_ratio fWater HHe_ratio MgSi_ratio FeSi_ratio deltaT ", end="", file = f)
+	print("Planetmass T_AMOI T_SME Pstd P_SME CO_ratio fWater HHe_ratio MgSi_ratio FeSi_ratio itarSH_ratio deltaT ", end="", file = f)
 
 	for p in parameters:
 		print(p, end= " ", file = f)
@@ -287,11 +295,15 @@ def get_results(path=None):
 
 		print("%12.10g " %  M[i], end ="", file=f)
 		print("%12.10g " %  T_AMOI[i], end ="", file=f)
+		print("%12.10g " %  T_SME[i], end ="", file=f)
+		print("%12.10g " %  Pstd[i], end ="", file=f)
+		print("%12.10g " %  P_SME[i], end ="", file=f)
 		print("%12.10g " %  C_O[i], end ="", file=f)
 		print("%12.10g " %  fWater[i], end ="", file=f)
 		print("%12.10g " %  H_He[i], end ="", file=f)
 		print("%12.10g " %  Mg_Si[i], end ="", file=f)
 		print("%12.10g " %  Fe_Si[i], end ="", file=f)
+		print("%12.10g " %  itarSH[i], end ="", file=f)
 		print("%12.10g " %  deltaT[i], end ="", file=f)
 
 		for p in parameters:
@@ -330,4 +342,3 @@ def get_results(path=None):
 
 if __name__ == "__main__":
 	get_results()
-	

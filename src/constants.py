@@ -20,6 +20,11 @@ R_earth = 6.371e6       # m
 log_to_ln = 2.302585093
 ref_T = 298.15
 
+# ΔIW range for Earth's core formation (Frost et al. 2008, Wood et al. 2006)
+# Used for shading in delta_IW plots to indicate Earth-like redox conditions
+EARTH_CORE_FORMATION_DELTA_IW_MIN = -3.1
+EARTH_CORE_FORMATION_DELTA_IW_MAX = -1.8
+
 # scaling constants
 def select_scaling_constants(planet_type = 'Fe0675_MgSiO3_0325'):
     """
@@ -93,6 +98,7 @@ mixtures = {
         0.22 * 3 + 0.75
     ]),
 }
+mixtures = {k: v / v.sum() for k, v in mixtures.items()}
 
 def composition_from_chem_input(chem_input_path=None):
     """

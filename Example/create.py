@@ -15,7 +15,15 @@ from src.constants import repo_root
 # Read input
 # ---------------------------------
 
-def create(version, output_dir=None):
+def create(version, params=None, output_dir=None):
+    """Create input files for GEC simulation.
+    
+    Args:
+        version: Version string (e.g. 'Sulfur_Version', 'Carbon_Version')
+        params: Optional GCEParams object. If provided, uses those parameters.
+                If None, uses the default parameters defined below.
+        output_dir: Output directory path. If None, uses 'input_Folder_{version}'.
+    """
     sulfur_enabled = ("Sulfur_Version" in version)
     print("# -------------------------------------------")
     print("# Calculate Input for GEC")
@@ -25,30 +33,41 @@ def create(version, output_dir=None):
 
     ###################################################################################
 
-    #Set Parameters in the following block
+    # Default parameters (used when params=None)
+    # If params is provided (GCEParams object), those values override these defaults
 
     ###################################################################################
 
-    mainfolder = output_dir if output_dir else f'input_Folder_{version}' # folder where the input files are stored
-    FakeMolesTotal = 10e3 # total fake-moles, in essence this is just any number
-    Planetmassarray = np.array([1.]) # in Mearth
-
-    Tsurfarray = np.array([3000.]) #reference value
-    deltaTarray = np.array([500.])
-    # test for molar ratios of Mg/Si/Fe
-    tarmgsiarray = np.array([1.])#([0.5, 0.6, 0.7,0.8,0.9,1.0, 1.25, 1.5,1.75, 2.0]) 
-    tarfesiarray = np.array([1.])#([0.5, 0.6, 0.7,0.8,0.9,1.0, 1.25, 1.5,1.75, 2.0])
-
-    tarWaterarray = np.array([0.0, 0.1]) # mass fraction in primordially accreted water
-    tarHHearray = np.array([0.01,0.03,0.07]) # mass fraction in primordially accreted HHe
-
-    tarDiskCOarray = np.array([0.5]) # mass fraction in primordially accreted HHe, considering C/O values in protoplanetary disk’s gas P. Molliere 2022
-    tarDiskSHarray = np.array([1.335e-5])  # Kama, Shorttle et al: 89+/- 8% sulfur is in refractory form
-    # these are disk values; ISM ranges from 1 - 2e-5. Solar is about 1.5e-5 (from photosphere) * .89
-
-    # - Bulk Earth S ~2.9% (McDonough 1995), ~1.1% (Fischer et al. 2025)
-    # - Solar S ~0.04% with H ~71%; removing H/He leaves ~0.5–4% S in metals
-    ###################################################################################
+    mainfolder = output_dir if output_dir else f'input_Folder_{version}'
+    
+    # Use params if provided, otherwise use these defaults
+    if params is not None:
+        FakeMolesTotal = params.FakeMolesTotal
+        Planetmassarray = params.Planetmassarray
+        Tsurfarray = params.T_AMOI_array
+        T_SME_array = params.T_SME_array
+        tarmgsiarray = params.tarmgsiarray
+        tarfesiarray = params.tarfesiarray
+        tarWaterarray = params.tarWaterarray
+        tarHHearray = params.tarHHearray
+        tarDiskCOarray = params.tarDiskCOarray
+        tarDiskSHarray = params.tarDiskSHarray
+        UseCondriticComp = params.UseCondriticComp
+        UseCondriticPreset = params.UseCondriticPreset
+    else:
+        # Default values when no params provided
+        FakeMolesTotal = 10e3
+        Planetmassarray = np.array([1.])
+        Tsurfarray = np.array([3000.])
+        T_SME_array = np.array([3500.])  # default T_SME = T_surf + 500
+        tarmgsiarray = np.array([1.])
+        tarfesiarray = np.array([1.])
+        tarWaterarray = np.array([0.0, 0.1])
+        tarHHearray = np.array([0.01, 0.03, 0.07])
+        tarDiskCOarray = np.array([0.5])
+        tarDiskSHarray = np.array([1.335e-5])
+        UseCondriticComp = 'molar fraction'
+        UseCondriticPreset = 'ed_young'
 
     # Default Sulfur-version parameters (match Sulfur_Version/chem_input.dat)
     Pstd_value = 1.0                # standard pressure scaling
@@ -104,11 +123,6 @@ def create(version, output_dir=None):
 
 
     # bulk chondritic composition presets
-    # Toggle here between 'molar fraction' (default) and 'mass fraction'
-    UseCondriticComp = 'molar fraction'
-    # Choose preset: 'ed_young' (molar), 'allegre' (mass), or 'javoy' (mass)
-    UseCondriticPreset = 'ed_young'
-
     condritic_mass_allegre = {  # Allegre 2001
         'Si': 0.171,
         'Mg': 0.158,
@@ -176,7 +190,7 @@ def create(version, output_dir=None):
     failures = []
     for iPlanetmass in Planetmassarray:
         for iTsurf in Tsurfarray:
-            for ideltaT in deltaTarray:
+            for iT_SME in T_SME_array:
                 for itarCO in tarDiskCOarray:
                     for iHHe in tarHHearray:
                         for iFeSi in tarfesiarray:
@@ -213,7 +227,7 @@ def create(version, output_dir=None):
                                                 'iMgSi molar ratio': iMgSi,
                                                 'iFeSi molar ratio': iFeSi,
                                                 'itarSH ratio': itarSH,
-                                                'ideltaT in K': ideltaT,
+                                                'iT_SME in K': iT_SME,
                                                 'status': 'pending',
                                                 'error': ''
                                             })
@@ -224,10 +238,10 @@ def create(version, output_dir=None):
                                             
                                             Mplanet_Mearth = iPlanetmass
                                             T_surf = iTsurf
-                                            T_CMB = iTsurf + ideltaT
+                                            T_CMB = iT_SME
                                             P_Carbon = -95 + iPlanetmass*(710-250)/(14-6) # from MRcode 14 Mearth = 710 bar, 6 Mearth = 250 bar for 0.3*P_CMB, not used in Blanchard!
 
-                                            # ---------------------------------
+                                            # ---------------------------------
                                             # Calculate Bulk Composition in Moles
                                             # ---------------------------------
                                             # composition of chondritic material (Allegre 2001)
@@ -475,7 +489,7 @@ def create(version, output_dir=None):
                                                 'iMgSi molar ratio': iMgSi,
                                                 'iFeSi molar ratio': iFeSi,
                                                 'itarSH ratio': itarSH,
-                                                'ideltaT in K': ideltaT,
+                                                'iT_SME in K': iT_SME,
                                             'status': 'failure',
                                             'error': str(e)
                                             })

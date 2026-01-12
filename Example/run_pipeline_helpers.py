@@ -1,8 +1,10 @@
 import os
 import subprocess
+from dataclasses import fields
 from datetime import datetime
 import numpy as np
 from src.constants import repo_root
+from Example.plots.helpers.plotting_helpers import AXIS_ALIASES, axis_keys
 
 
 def resolve_input_dir(base_dir, new_input_dir_prefix, existing_input_dir, version):
@@ -29,10 +31,33 @@ def build_solver(version):
     print("Build complete.")
 
 
-def is_multi_value(value):
-    """Return True when a parameter holds multiple values."""
-    if isinstance(value, np.ndarray):
-        return value.size > 1
-    if isinstance(value, (list, tuple)):
-        return len(value) > 1
-    return False
+def infer_axis_list(params):
+    """Infer axis keys from parameter arrays with multiple values."""
+    inferred = []
+    missing_axes = []
+    allowed_axes = set(axis_keys())
+
+    for field in fields(params):
+        value = getattr(params, field.name)
+
+        def is_multi_value(value):
+            if isinstance(value, np.ndarray):
+                return value.size > 1
+            if isinstance(value, (list, tuple)):
+                return len(value) > 1
+        if not is_multi_value(value):
+            continue
+        axis_key = AXIS_ALIASES.get(field.name, field.name)
+        if axis_key in allowed_axes:
+            inferred.append(axis_key)
+        else:
+            missing_axes.append(field.name)
+
+    if missing_axes:
+        missing = ", ".join(missing_axes)
+        raise ValueError(
+            "Parameters with multiple values need axis setup before plotting. "
+            f"Missing axis definitions for: {missing}."
+        )
+
+    return inferred
