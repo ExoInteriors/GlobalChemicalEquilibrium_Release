@@ -1161,14 +1161,13 @@ G21=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 
 GRT21=G21/(R*TK)
 
-# REACTION 22: Fe_metal + S_metal = FeS_melt
+# Reaction 22: FeS (silicate) <-> Fe (metal) + S (metal)
 # from Calvo, Siebert et al preprint
-# The full logC_S = -5.704 + 3.15*FeO_melt + 0.12*MgO_melt + 0.75*Na2O_melt
-# is added in Equations.py via lngS calculation in f21
-lngS_base = log_to_ln * (-9.00 + 14530.0 / TK)
-G22 = -R * TK * lngS_base + GmetalFe
-
-GRT22=G22/(R*TK)
+# partition coefficient included here
+P_SME = 10. # get_P_SME(Mplanet_Mearth, P_AMOI, percent=0.3) #TODO is to fix this
+lngS = log_to_ln * (-9.00 + 14530.0 / TK + 220.27 * P_SME/TK )
+G21 = -R * TK * lngS + GmetalFe
+GRT21=G21/(R*TK)
 
 # REACTION 23: 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas) = 2 FeSO4 (silicate) 
 G23 = 2.0*GmeltFeSO4 - 2.0*GmeltFeO - 2.0*GgasSO2 - GgasO2

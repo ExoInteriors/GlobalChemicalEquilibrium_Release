@@ -8,7 +8,6 @@ def _resolve_version_folder(version: str):
         return version
     return f"{version}_Version"
 
-
 def _find_latest_chem_input_from_create(version_folder: str):
     """
     Locate the first chem_input.dat inside the input folder produced by create.py for this version.
@@ -43,7 +42,7 @@ def radius_seager_solid(M_p_earth, planet_type=None):
     M_s = M_p_earth / m1 # scaled mass
     log_Rs = k1 + (1./3.)*sympy_log(M_s, 10) - k2 * (M_s**k3)
     R_s = 10**log_Rs # scaled radius
-    R_p_earth = r1 * R_s * R_earth 
+    R_p_earth = r1 * R_s # in Earth radii
     return R_p_earth
 
 
@@ -54,14 +53,14 @@ def central_pressure(M_p_earth, planet_type=None):
 
     There's a more complex parametrization as well in Seager 2007; doing easier one for now.
     """
-    R_p_earth = radius_seager_solid(M_p_earth, planet_type)
-    M_p = M_p_earth * M_earth
-    R_p = R_p_earth * R_earth
+    R_p_earth = radius_seager_solid(M_p_earth, planet_type) # in Earth radii
+    M_p = M_p_earth * M_earth # in kg
+    R_p = R_p_earth * R_earth # in m
     P_c_Pa = (3.0 * G / 8.0 * np.pi) * (M_p**2 / R_p**4)
     P_c_GPa = P_c_Pa / 1e9
     return P_c_GPa
 
-def get_P_SME(M_p_earth, P_AMOI, percent=0.3, planet_type=None, version='Sulfur'):
+def get_P_SME(M_p_earth, P_AMOI, percent=0.1, planet_type=None, version='Sulfur'):
     """
     Pressure at silicate/mantle equilibrium by estimating that it is 
     P_c + some percentage of P at the atmosphere/magma ocean interface.
