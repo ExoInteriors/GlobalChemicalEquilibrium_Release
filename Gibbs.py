@@ -1163,10 +1163,7 @@ GRT21=G21/(R*TK)
 
 # Reaction 22: FeS (silicate) <-> Fe (metal) + S (metal)
 # from Calvo, Siebert et al preprint
-# partition coefficient included here
-P_SME = 10. # get_P_SME(Mplanet_Mearth, P_AMOI, percent=0.3) #TODO is to fix this
-lngS = log_to_ln * (-9.00 + 14530.0 / TK + 220.27 * P_SME/TK )
-G22 = -R * TK * lngS + GmetalFe
+G22 = 0#GmetalFe # + lngS as calculated in @Equations.py
 GRT22=G22/(R*TK)
 
 # REACTION 23: 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas) = 2 FeSO4 (silicate) 

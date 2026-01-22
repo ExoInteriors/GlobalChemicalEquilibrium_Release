@@ -3,8 +3,11 @@ import shutil
 from src.constants import repo_root
 
 
-def copy_inputs(version='Sulfur_Version', input_dir=None):
-    input_dir = input_dir or os.path.join(repo_root, f'input_Folder_{version}')
+def copy_inputs(input_dir, version='Sulfur_Version', gibbs_script='Sulfur_Nitrogen_Version/Gibbs_S_N_Version.py'):
+    """
+    Copy solver artifacts into each generated case and optionally point the parameter files
+    to a version-specific Gibbs script.
+    """
     subfolders = [f.path for f in os.scandir(input_dir) if f.is_dir()]
 
     # Explicit sulfur-version sources
@@ -14,7 +17,7 @@ def copy_inputs(version='Sulfur_Version', input_dir=None):
 
     with open(param_src, encoding="utf-8") as pf:
         param_lines = pf.readlines()
-    gibbs_root_script = os.path.join(repo_root, 'Gibbs.py') 
+    gibbs_root_script = os.path.join(repo_root, gibbs_script) 
     gibbs_root_exists = os.path.isfile(gibbs_root_script)
 
     for s in sorted(subfolders):

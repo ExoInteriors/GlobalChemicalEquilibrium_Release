@@ -27,11 +27,7 @@ __pycache__/
 *$py.class
 *.so
 
-# Example input files
-Example/input_Folder/*
-Example/input_Folder/input*/param.dat
-Example/input_Folder/input*/solver
-Example/input_Folder_*/**
-
 # Root-level generated input/output folders (versioned runs)
-input_Folder_*/**
+results*/**
+
+.cursorrules
