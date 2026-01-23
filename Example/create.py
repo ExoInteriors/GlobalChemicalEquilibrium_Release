@@ -129,14 +129,16 @@ def create(version, output_dir=None):
         'S': 0.0,  # placeholder
     }
 
-    condritic_molar_ed_young = {  # Ed Young 2023/2024, Lodders 2021
-      'O' : 0.6296498533,
-        'Mg': 0.08787796055,
-        'Si': 0.08531840830,
-        'C' : 0.08054057743,
-        'Fe': 0.07439765204,
-        'Na': 0.00493140400,
-        'S' : 0.019,
+    condritic_molar_ed_young = {
+            "O": 0.4962,
+            "Mg": 0.167,
+            "Si": 0.164,
+            "C": 0.011,
+            "Fe": 0.159,
+            "Na": 0.0028,
+            # almost matches except for O and Fe
+            "S": 0.0236, # from Lodders 2021: this is sadly CI chondrite
+            "N": 0.00239, # from Lodders 2021: this is sadly CI chondrite
         }
 
     if UseCondriticComp == 'mass fraction':
