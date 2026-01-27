@@ -33,6 +33,7 @@ calculate_P.o: $(HEADERS) calculate_P.cpp
 
 parameters.h ctot.cpp grad_ctot.cpp calculate_P.cpp : ../src/CTOT.py Equations.py ../Molecular_Weight.dat
 	python3 ../src/CTOT.py Equations.py
+	cp parameters.h ../src/parameters.h
 
 # Clean rule to remove generated files
 clean:
