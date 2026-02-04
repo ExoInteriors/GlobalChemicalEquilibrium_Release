@@ -1163,7 +1163,7 @@ GRT21=G21/(R*TK)
 
 # Reaction 22: FeS (silicate) <-> Fe (metal) + S (metal)
 # from Calvo, Siebert et al preprint
-G22 = 0#GmetalFe # + lngS as calculated in @Equations.py
+G22 = GmetalFe # + lngS as calculated in @Equations.py
 GRT22=G22/(R*TK)
 
 # REACTION 23: 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas) = 2 FeSO4 (silicate) 

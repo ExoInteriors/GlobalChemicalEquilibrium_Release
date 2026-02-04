@@ -1169,9 +1169,9 @@ G20=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
 GRT20=G20/(R*TK)
 
 # ------------------------------------
-# Reaction 21: FeS (silicate) <-> Fe (metal) + S (metal)
+# Reaction 21: Fe (metal) + S (metal) <-> FeS (silicate)
 # from Calvo, Siebert et al preprint
-G21 = 0# GmetalFe
+G21 = GmetalFe
 GRT21=G21/(R*TK)
 
 # ------------------------------------
