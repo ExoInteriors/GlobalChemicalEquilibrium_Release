@@ -144,67 +144,67 @@ lngH2 = 0.0
 lngH2Osilicate = 0.0
 lngHmetal = 0.0
 
-# f0: Na2O (silicate) + SiO2 (silicate) <-> Na2SiO3 (silicate)
+# f0: Na2SiO3 (silicate) <->  Na2O (silicate) + SiO2 (silicate)
 f0 = log(var['Na2O_silicate']) + log(var['SiO2_silicate']) - log(var['Na2SiO3_silicate']) + GRT_T[0]
 
-# f1: 0.5 Si (metal) + FeO (silicate) <-> Fe (metal) + 0.5 SiO2 (silicate)
+# f1: Fe (metal) + 0.5 SiO2 (silicate) <-> 0.5 Si (metal) + FeO (silicate)
 f1 = 0.5 * log(var['Si_metal']) + 0.5 * lngSi + log(var['FeO_silicate']) - log(var['Fe_metal']) - 0.5 * log(var['SiO2_silicate']) + GRT_T[1]
 
-# f2: MgO (silicate) + SiO2 (silicate) <-> MgSiO3 (silicate)
+# f2:  MgSiO3 (silicate) <-> MgO (silicate) + SiO2 (silicate)
 f2 = log(var['MgO_silicate']) + log(var['SiO2_silicate']) - log(var['MgSiO3_silicate']) + GRT_T[2]
 
-# f3: 0.5 Si (metal) + O (metal) <-> 0.5 SiO2 (silicate) # check sign
+# f3:  0.5 SiO2 (silicate) <-> 0.5 Si (metal) + O (metal)
 f3 = 0.5 * log(var['SiO2_silicate']) - log(var['O_metal']) - lngO - 0.5 * log(var['Si_metal']) - 0.5 * lngSi + GRT_T[3]	#Check sign
 
-# f4: H2 (silicate) <-> 2 H (metal)
+# f4: 2 H (metal) <-> H2 (silicate)
 f4 = log(var['H2_silicate']) + lngH2 - 2.0 * log(var['H_metal']) - 2.0 * lngHmetal + GRT_T[4]
 
-# f5: FeO (silicate) + SiO2 (silicate) <-> FeSiO3 (silicate)
+# f5: FeSiO3 (silicate) <-> FeO (silicate) + SiO2 (silicate)
 f5 = log(var['FeO_silicate']) + log(var['SiO2_silicate']) - log(var['FeSiO3_silicate']) + GRT_T[5]
 
-# f6: SiO2 (silicate) + 2 H2 (silicate) <-> 2 H2O (silicate) + Si (metal)
+# f6: 2 H2O (silicate) + Si (metal) <-> SiO2 (silicate) + 2 H2 (silicate)
 f6 = log(var['SiO2_silicate']) + 2.0 * log(var['H2_silicate']) + 2.0 * lngH2 - 2.0 * log(var['H2O_silicate']) - 2.0 * lngH2Osilicate - log(var['Si_metal']) - lngSi + GRT_T[6]
 
-# f7: CO2 (gas) <-> CO (gas) + 0.5 O2 (gas)
+# f7: CO (gas) + 0.5 O2 (gas) <-> CO2 (gas)
 f7 = log(var['CO2_gas']) - log(var['CO_gas']) - 0.5 * log(var['O2_gas']) + GRT_T[7] - 0.5 * log(P/Pstd)
 
-# f8: 2 H2 (gas) + CO (gas) <-> CH4 (gas) + 0.5 O2 (gas)
+# f8: CH4 (gas) + 0.5 O2 (gas) <-> 2 H2 (gas) + CO (gas)
 f8 = 2.0 * log(var['H2_gas']) + log(var['CO_gas']) - log(var['CH4_gas']) - 0.5 * log(var['O2_gas']) + GRT_T[8] + 1.5 * log(P/Pstd)
 
-# f9: H2O (gas) <-> 0.5 O2 (gas) + H2 (gas)
+# f9: 0.5 O2 (gas) + H2 (gas)  <-> H2O (gas)
 f9 = log(var['H2O_gas']) - 0.5 * log(var['O2_gas']) - log(var['H2_gas']) + GRT_T[9] - 0.5 * log(P/Pstd)
 
-# f10: 0.5 O2 (gas) + Fe (gas) <-> FeO (silicate)
+# f10: FeO (silicate) <-> 0.5 O2 (gas) + Fe (gas)
 f10 = 0.5 * log(var['O2_gas']) + log(var['Fe_gas']) - log(var['FeO_silicate']) + GRT_T[10] + 1.5 * log(P/Pstd)
 
-# f11: 0.5 O2 (gas) + Mg (gas) <-> MgO (silicate)
+# f11: MgO (silicate) <-> 0.5 O2 (gas) + Mg (gas)
 f11 = 0.5 * log(var['O2_gas']) + log(var['Mg_gas']) - log(var['MgO_silicate']) + GRT_T[11] + 1.5 * log(P/Pstd)
 
-# f12: 0.5 O2 (gas) + SiO (gas) <-> SiO2 (silicate)
+# f12: SiO2 (silicate) <-> 0.5 O2 (gas) + SiO (gas)
 f12 = 0.5 * log(var['O2_gas']) + log(var['SiO_gas']) - log(var['SiO2_silicate']) + GRT_T[12] + 1.5 * log(P/Pstd)
 
-# f13: 0.5 O2 (gas) + 2 Na (gas) <-> Na2O (silicate)
+# f13: Na2O (silicate) <-> 0.5 O2 (gas) + 2 Na (gas)
 f13 = 0.5 * log(var['O2_gas']) + 2.0 * log(var['Na_gas']) - log(var['Na2O_silicate']) + GRT_T[13] + 2.5 * log(P/Pstd)
 
-# f14: H2 (silicate) <-> H2 (gas)
+# f14: H2 (gas) <-> H2 (silicate)
 f14 = log(var['H2_silicate']) + lngH2 - log(var['H2_gas']) + GRT_T[14] - log(P/Pstd)
 
-# f15: H2O (silicate) <-> H2O (gas)
+# f15: H2O (gas) <-> H2O (silicate)
 f15 = log(var['H2O_silicate']) + lngH2Osilicate - log(var['H2O_gas']) + GRT_T[15] - log(P/Pstd)
 
-# f16: CO (silicate) <-> CO (gas)
+# f16: CO (gas) <-> CO (silicate)
 f16 = log(var['CO_silicate']) - log(var['CO_gas']) + GRT_T[16] - log(P/Pstd)
 
-# f17: CO2 (silicate) <-> CO2 (gas)
+# f17: CO2 (gas) <-> CO2 (silicate)
 f17 = log(var['CO2_silicate']) - log(var['CO2_gas']) + GRT_T[17] - log(P/Pstd)
 
-# f18: SiH4 (gas) + 0.5 O2 (gas) <-> SiO (gas) + 2 H2 (gas)
+# f18: SiO (gas) + 2 H2 (gas) <-> SiH4 (gas) + 0.5 O2 (gas)
 f18 = log(var['SiH4_gas']) + 0.5 * log(var['O2_gas']) - log(var['SiO_gas']) - 2.0 * log(var['H2_gas']) + GRT_T[18] - 1.5 * log(P/Pstd)
 
-# f19: C (metal) + O (metal) <-> CO (silicate)
+# f19: CO (silicate) <-> C (metal) + O (metal)
 f19 = log(var['C_metal']) + log(var['O_metal']) - log(var['CO_silicate']) + lngCmetal + lngO + GRT_T[19]
 
-# f20: 4 FeO (silicate) + O2 (gas) <-> 4 FeO1.5 (silicate)
+# f20: 4 FeO1.5 (silicate) <-> 4 FeO (silicate) + O2 (gas)
 f20 = 4.0 * log(var['FeO_silicate']) + log(var['O2_gas']) - 4.0 * log(var['FeO15_silicate']) + GRT_T[20] + log(P/Pstd)
 
 # f21: FeS (silicate) <-> Fe (metal) + S (metal)
@@ -212,22 +212,22 @@ f20 = 4.0 * log(var['FeO_silicate']) + log(var['O2_gas']) - 4.0 * log(var['FeO15
 # lngS adds the composition-dependent activity coefficient correction
 f21 = log(var['Fe_metal']) + log(var['S_metal']) - log(var['FeS_silicate']) + lngS + GRT_T[21]
 
-# f22: 2 FeSO4 (silicate) <-> 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas)
+# f22: 2 FeO (silicate) + 2 SO2 (gas) + O2 (gas) <-> 2 FeSO4 (silicate)
 f22 = 2.0 * log(var['FeSO4_silicate']) - 2.0 * log(var['FeO_silicate']) - 2.0 * log(var['SO2_gas']) - log(var['O2_gas']) + GRT_T[22] - 3.0 * log(P/Pstd)
 
-# f23: SO2 (gas) + H2 (gas) <-> H2S (gas) + O2 (gas)
+# f23: H2S (gas) + O2 (gas) <-> SO2 (gas) + H2 (gas)
 f23 = log(var['SO2_gas']) + log(var['H2_gas']) - log(var['H2S_gas']) - log(var['O2_gas']) + GRT_T[23]
 
-# f24: 3 H2O (silicate) + FeS (silicate) <-> 3 H2 (silicate) + FeO (silicate) + SO2 (gas)
+# f24: 3 H2 (silicate) + FeO (silicate) + SO2 (gas) <-> 3 H2O (silicate) + FeS (silicate)
 f24 = 3.0 * log(var['H2O_silicate']) + log(var['FeS_silicate']) - 3.0 * log(var['H2_silicate']) - log(var['FeO_silicate']) - log(var['SO2_gas']) + GRT_T[24] - log(P/Pstd)
 
 # f25: N2 (gas) <-> N2 (silicate)
-f25 = log(var['N2_gas']) - log(var['N2_silicate']) + GRT_T[25] - log(P/Pstd)
+f25 = log(var['N2_silicate']) - log(var['N2_gas']) + GRT_T[25] - log(P/Pstd)
 
-# f26: 2 NH3 (gas) <-> 3 H2 (gas) + N2 (gas)
+# f26: 3 H2 (gas) + N2 (gas) <-> 2 NH3 (gas) 
 f26 = 2.0 * log(var['NH3_gas']) - 3.0 * log(var['H2_gas']) - log(var['N2_gas']) + GRT_T[26] - 2.0 * log(P/Pstd)
 
-# f27: NH3 (gas) + CH4 (gas) <-> HCN (gas) + 3 H2 (gas)
+# f27: HCN (gas) + 3 H2 (gas) <-> NH3 (gas) + CH4 (gas)
 f27 = log(var['NH3_gas']) + log(var['CH4_gas']) - log(var['HCN_gas']) - 3.0 * log(var['H2_gas']) + GRT_T[27] - 2.0 * log(P/Pstd)
 
 # Mass conservation
