@@ -204,8 +204,8 @@ f18 = log(var['SiH4_gas']) + 0.5 * log(var['O2_gas']) - log(var['SiO_gas']) - 2.
 # f19: C (metal) + O (metal) <-> CO (silicate)
 f19 = log(var['C_metal']) + log(var['O_metal']) - log(var['CO_silicate']) + lngCmetal + lngO + GRT_T[19]
 
-# f20: 2 FeO (silicate) + O2 (gas) <-> 2 FeO1.5 (silicate)
-f20 = 2.0 * log(var['FeO_silicate']) + log(var['O2_gas']) - 2.0 * log(var['FeO15_silicate']) + GRT_T[20] + log(P/Pstd)
+# f20: 4 FeO (silicate) + O2 (gas) <-> 4 FeO1.5 (silicate)
+f20 = 4.0 * log(var['FeO_silicate']) + log(var['O2_gas']) - 4.0 * log(var['FeO15_silicate']) + GRT_T[20] + log(P/Pstd)
 
 # f21: FeS (silicate) <-> Fe (metal) + S (metal)
 # GRT_T[21] contains the base part from Gibbs.py (without composition-dependent logC_S)

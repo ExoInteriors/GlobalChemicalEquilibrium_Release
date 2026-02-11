@@ -1164,8 +1164,8 @@ G19=-(R*TK*(2.303*(0.3 + 3822.0/TK)))+GmetalO # Blanchard (2022) + GmetalO
 GRT19=G19/(R*TK)
 
 # ------------------------------------
-# Reaction 20: 2 FeO (silicate) + O2 (gas) <-> 2 FeO1.5 (silicate)
-G20=2.0*GmeltFeO + GgasO2 - 2.0*GmeltFeO15
+# Reaction 20: 4 FeO (silicate) + O2 (gas) <-> 4 FeO1.5 (silicate)
+G20=4.0*GmeltFeO + GgasO2 - 4.0*GmeltFeO15
 GRT20=G20/(R*TK)
 
 # ------------------------------------
