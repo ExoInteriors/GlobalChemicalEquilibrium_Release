@@ -121,61 +121,61 @@ lngH2Omelt = 0.0
 lngHmetal = 0.0
 
 
-# f0: Na2O (melt) + SiO2 (melt) <-> Na2SiO3 (melt)
+# f0: Na2SiO3 (silicate) <->  Na2O (silicate) + SiO2 (silicate)
 f0 = log(var['Na2O_silicate']) + log(var['SiO2_silicate']) - log(var['Na2SiO3_silicate']) + GRT_T[0]
 
-# f1: FeO (melt) + 0.5 Si (metal) <-> Fe (metal) + 0.5 SiO2 (melt)
+# f1: Fe (metal) + 0.5 SiO2 (silicate) <-> 0.5 Si (metal) + FeO (silicate)
 f1 = 0.5 * log(var['Si_metal']) + 0.5 * lngSi + log(var['FeO_silicate']) - 0.5 * log(var['SiO2_silicate' ]) - log(var['Fe_metal']) + GRT_T[1]
 
-# f2: MgO (melt) + SiO2 (melt) <-> MgSiO3 (melt)
+# f2: MgSiO3 (silicate) <-> MgO (silicate) + SiO2 (silicate)
 f2 = log(var['MgO_silicate']) + log(var['SiO2_silicate']) - log(var['MgSiO3_silicate']) + GRT_T[2]
 
-# f3: 0.5 Si (metal) + O (metal) <-> 0.5 SiO2 (melt)
+# f3:  0.5 Si (metal) + O (metal) <-> 0.5 SiO2 (silicate)
 f3 = 0.5 * log(var['SiO2_silicate']) - log(var['O_metal']) - lngO - 0.5 * log(var['Si_metal']) - 0.5 * lngSi + GRT_T[3]	#Check sign
 
-# f4: H2 (melt) <-> 2 H (metal)
+# f4: 2 H (metal) <-> H2 (silicate)
 f4 = log(var['H2_silicate']) + lngH2 - 2.0 * log(var['H_metal']) - 2.0 * lngHmetal + GRT_T[4]
 
-# f5: FeO (melt) + SiO2 (melt) <-> FeSiO3 (melt)
+# f5: FeSiO3 (silicate) <-> FeO (silicate) + SiO2 (silicate)
 f5 = log(var['FeO_silicate']) + log(var['SiO2_silicate']) - log(var['FeSiO3_silicate']) + GRT_T[5]
 
-# f6: SiO2 (melt) + 2 H2 (melt) <-> 2 H2O (melt) + Si (metal)
+# f6: 2 H2O (silicate) + Si (metal) <-> SiO2 (silicate) + 2 H2 (silicate)
 f6 = log(var['SiO2_silicate']) + 2.0 * log(var['H2_silicate']) + 2.0 * lngH2 - 2.0 * log(var['H2O_silicate']) - 2.0 * lngH2Omelt - log(var['Si_metal']) - lngSi + GRT_T[6]
 
-# f7: CO2 (gas) <-> CO (gas) + 0.5 O2 (gas)
+# f7: CO (gas) + 0.5 O2 (gas) <-> CO2 (gas)
 f7 = log(var['CO2_gas']) - log(var['CO_gas']) - 0.5 * log(var['O2_gas']) + GRT_T[7] - 0.5 * log(P/Pstd)
 
-# f8: 2 H2 (gas) + CO (gas) <-> CH4 (gas) + 0.5 O2 (gas)
+# f8: CH4 (gas) + 0.5 O2 (gas) <-> 2 H2 (gas) + CO (gas)
 f8 = 2.0 * log(var['H2_gas']) + log(var['CO_gas']) - log(var['CH4_gas']) - 0.5 * log(var['O2_gas']) + GRT_T[8] + 1.5 * log(P/Pstd)
 
-# f9: H2O (gas) <-> 0.5 O2 (gas) + H2 (gas)
+# f9: 0.5 O2 (gas) + H2 (gas)  <-> H2O (gas)
 f9 = log(var['H2O_gas' ]) - 0.5 * log(var['O2_gas']) - log(var['H2_gas']) + GRT_T[9] - 0.5 * log(P/Pstd)
 
-# f10: 0.5 O2 (gas) + Fe (gas) <-> FeO (melt)
+# f10: FeO (silicate) <-> 0.5 O2 (gas) + Fe (gas)
 f10 = 0.5 * log(var['O2_gas']) + log(var['Fe_gas']) - log(var['FeO_silicate']) + GRT_T[10] + 1.5 * log(P/Pstd)
 
-# f11: 0.5 O2 (gas) + Mg (gas) <-> MgO (melt)
+# f11: MgO (silicate) <-> 0.5 O2 (gas) + Mg (gas)
 f11 = 0.5 * log(var['O2_gas']) + log(var['Mg_gas']) - log(var['MgO_silicate']) + GRT_T[11] + 1.5 * log(P/Pstd)
 
-# f12: 0.5 O2 (gas) + SiO (gas) <-> SiO2 (melt)
+# f12: SiO2 (silicate) <-> 0.5 O2 (gas) + SiO (gas)
 f12 = 0.5 * log(var['O2_gas']) + log(var['SiO_gas']) - log(var['SiO2_silicate']) + GRT_T[12] + 1.5 * log(P/Pstd)
 
-# f13: 0.5 O2 (gas) + 2 Na (gas) <-> Na2O (melt)
+# f13: Na2O (silicate) <-> 0.5 O2 (gas) + 2 Na (gas)
 f13 = 0.5 * log(var['O2_gas']) + 2.0 * log(var['Na_gas']) - log(var['Na2O_silicate']) + GRT_T[13] + 2.5 * log(P/Pstd)
 
-# f14: H2 (melt) <-> H2 (gas)
+# f14: H2 (gas) <-> H2 (silicate)
 f14 = log(var['H2_silicate']) + lngH2 - log(var['H2_gas']) + GRT_T[14] - log(P/Pstd)
 
-# f15: H2O (melt) <-> H2O (gas)
+# f15: H2O (gas) <-> H2O (silicate)
 f15 = log(var['H2O_silicate']) + lngH2Omelt - log(var['H2O_gas']) + GRT_T[15] - log(P/Pstd)
 
-# f16: CO (melt) <-> CO (gas)
+# f16: CO (gas) <-> CO (silicate)
 f16 = log(var['CO_silicate']) - log(var['CO_gas']) + GRT_T[16] - log(P/Pstd)
 
-# f17: CO2 (melt) <-> CO2 (gas)
+# f17: CO2 (gas) <-> CO2 (silicate)
 f17 = log(var['CO2_silicate']) - log(var['CO2_gas']) + GRT_T[17] - log(P/Pstd)
 
-# f18: SiH4 (gas) + 0.5 O2 (gas) <-> SiO (gas) + 2 H2 (gas)
+# f18: SiO (gas) + 2 H2 (gas) <-> SiH4 (gas) + 0.5 O2 (gas)
 f18 = log(var['SiH4_gas']) + 0.5 * log(var['O2_gas']) - log(var['SiO_gas']) - 2.0 * log(var['H2_gas']) + GRT_T[18] - 1.5 * log(P/Pstd)
 
 
