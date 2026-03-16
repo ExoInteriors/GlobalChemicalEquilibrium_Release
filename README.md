@@ -1,4 +1,4 @@
-# Global Equilibrium Chemistry code for planetary interiors
+# Global Chemical Equilibrium code for planetary interiors
 
 
 Authors: Simon Grimm, Aaron Werlen, Caroline Dorn, Edward Young
@@ -15,4 +15,4 @@ Other versions are available on request from the authors.
 
 
 
-A documentation is available [here](https://github.com/ExoInteriors/FastGlobalChemDoc) .
+A documentation is available [here](...) .
