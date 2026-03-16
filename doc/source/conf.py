@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'FastGlobalChem Code'
+project = 'Global Chemical Equilibrium Code'
 copyright = '2025, Simon Grimm'
 author = 'Simon Grimm, Aaron Werlen, Caroline Dorn, Edward Young'
 

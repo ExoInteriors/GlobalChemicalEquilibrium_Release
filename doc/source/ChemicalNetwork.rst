@@ -7,25 +7,25 @@ This section describes shortly the theoretical background of the systems of equa
 The chemical reaction network can be set by the user. The code provides as a default chemical reaction network the system described in :cite:p:`SchlichtingYoung2022`. These are:
 
 .. math::
-	\text{Na}_2 \text{SiO}_\text{3,silicate} & \rightleftharpoons & \text{Na}_2 \text{O}_\text{silicate} + \text{SiO}_\text{2,silicate}                             &	&{R1}\\
-	\frac{1}{2} \text{SiO}_\text{2,silicate} + \text{Fe}_{\text{metal}}  & \rightleftharpoons & \text{FeO}_\text{silicate} + \frac{1}{2}\text{Si}_{\text{metal}}    &	&{R2}\\
-	\text{MgSiO}_\text{3,silicate} & \rightleftharpoons & \text{MgO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&{R3}\\
-	\text{O}_{\text{metal}} + \frac{1}{2} \text{Si}_{\text{metal}} & \rightleftharpoons & \frac{1}{2} \text{SiO}_\text{2,silicate}                                  &	&{R4}\\
-	2\text{H}_\text{metal} & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                      &	&{R5}\\
-	\text{FeSiO}_\text{3,silicate} & \rightleftharpoons & \text{FeO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&{R6}\\
-	2\text{H}_2 \text{O}_\text{silicate} + \text{Si}_\text{metal} & \rightleftharpoons & \text{SiO}_\text{2,silicate} + 2 \text{H}_{2, \text{silicate}}             &	&{R7}\\
-	\text{CO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2,\text{gas}}                                                      &	&{R8}\\
-	\text{CH}_{4,\text{gas}} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & 2 \text{H}_\text{2,gas} + \text{CO}_\text{gas}                            &	&{R9}\\
-	\text{H}_{2,\text{gas}} + \frac{1}{2}\text{O}_{2,\text{gas}}  & \rightleftharpoons & \text{H}_2 \text{O}_\text{gas}                                             &	&{R10}\\
-	\text{FeO}_\text{silicate} & \rightleftharpoons & \text{Fe}_\text{gas} + \frac{1}{2} \text{O}_{2.\text{gas}}                                                    &	&{R11}\\
-	\text{MgO}_\text{silicate} & \rightleftharpoons & \text{Mg}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                    &	&{R12}\\
-	\text{SiO}_\text{2,silicate} & \rightleftharpoons & \text{SiO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                 &	&{R13}\\
-	\text{Na}_2 \text{O}_\text{silicate} & \rightleftharpoons & 2 \text{Na}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                        &	&{R14}\\
-	\text{H}_{2.\text{gas}}  & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                    &	&{R15}\\
-	\text{H}_2 \text{O}_\text{gas} & \rightleftharpoons & \text{H}_2 \text{O}_\text{silicate}                                                                       &	&{R16}\\
-	\text{CO}_\text{gas} & \rightleftharpoons & \text{CO}_\text{silicate}                                                                                           &	&{R17}\\
-	\text{CO}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2, \text{silicate}}                                                                                  &	&{R18}\\
-	\text{SiH}_{4,\text{gas}} + \frac{1}{2} \text{O}_\text{2,gas}  & \rightleftharpoons & \text{SiO}_{\text{gas}} + 2 \text{H}_\text{2.gas}                         &	&{R19}
+	\text{Na}_2 \text{SiO}_\text{3,silicate} & \rightleftharpoons & \text{Na}_2 \text{O}_\text{silicate} + \text{SiO}_\text{2,silicate}                             	{R1}\\
+	\frac{1}{2} \text{SiO}_\text{2,silicate} + \text{Fe}_{\text{metal}}  & \rightleftharpoons & \text{FeO}_\text{silicate} + \frac{1}{2}\text{Si}_{\text{metal}}    	{R2}\\
+	\text{MgSiO}_\text{3,silicate} & \rightleftharpoons & \text{MgO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 	{R3}\\
+	\text{O}_{\text{metal}} + \frac{1}{2} \text{Si}_{\text{metal}} & \rightleftharpoons & \frac{1}{2} \text{SiO}_\text{2,silicate}                                  	{R4}\\
+	2\text{H}_\text{metal} & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                      	{R5}\\
+	\text{FeSiO}_\text{3,silicate} & \rightleftharpoons & \text{FeO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 	{R6}\\
+	2\text{H}_2 \text{O}_\text{silicate} + \text{Si}_\text{metal} & \rightleftharpoons & \text{SiO}_\text{2,silicate} + 2 \text{H}_{2, \text{silicate}}             	{R7}\\
+	\text{CO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2,\text{gas}}                                                      	{R8}\\
+	\text{CH}_{4,\text{gas}} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & 2 \text{H}_\text{2,gas} + \text{CO}_\text{gas}                            	{R9}\\
+	\text{H}_{2,\text{gas}} + \frac{1}{2}\text{O}_{2,\text{gas}}  & \rightleftharpoons & \text{H}_2 \text{O}_\text{gas}                                             	{R10}\\
+	\text{FeO}_\text{silicate} & \rightleftharpoons & \text{Fe}_\text{gas} + \frac{1}{2} \text{O}_{2.\text{gas}}                                                    	{R11}\\
+	\text{MgO}_\text{silicate} & \rightleftharpoons & \text{Mg}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                    	{R12}\\
+	\text{SiO}_\text{2,silicate} & \rightleftharpoons & \text{SiO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                 	{R13}\\
+	\text{Na}_2 \text{O}_\text{silicate} & \rightleftharpoons & 2 \text{Na}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                        	{R14}\\
+	\text{H}_{2.\text{gas}}  & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                    	{R15}\\
+	\text{H}_2 \text{O}_\text{gas} & \rightleftharpoons & \text{H}_2 \text{O}_\text{silicate}                                                                       	{R16}\\
+	\text{CO}_\text{gas} & \rightleftharpoons & \text{CO}_\text{silicate}                                                                                           	{R17}\\
+	\text{CO}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2, \text{silicate}}                                                                                  	{R18}\\
+	\text{SiH}_{4,\text{gas}} + \frac{1}{2} \text{O}_\text{2,gas}  & \rightleftharpoons & \text{SiO}_{\text{gas}} + 2 \text{H}_\text{2.gas}                         	{R19}
 
 The system consists of:
 
