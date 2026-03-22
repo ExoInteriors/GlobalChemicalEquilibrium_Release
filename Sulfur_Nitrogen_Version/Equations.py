@@ -123,22 +123,13 @@ lngO = (4.29-16500.0/T_SME)-(-1.0*1873.0/T_SME)*log(1.0-var['O_metal']) \
 # From Fischer et al. (2020) (https://www.pnas.org/doi/abs/10.1073/pnas.1919930117)
 lngCmetal = -2.303 * 19.5 * log(1.0 - var['O_metal'])
 
-# From Calvo et al. preprint, Accretion of volatile elements on Earth without the need of a late veneer
-# log10_C_s is the logarithmic "sulfide capacity" of the silicate
-# Terms for CaO, TiO2, and K2O are omitted because those species are not tracked.
-total_silicate = sum(var[name] for name in species if name.endswith('_silicate'))  # normalize FeO by total silicate
-logC_S = (
-    -5.704
-    + 3.15 * var['FeO_silicate']
-    + 0.12 * var['MgO_silicate']
-    + 0.75 * var['Na2O_silicate']
-)
 
-# From Calvo et al. preprint
-# lngS is the natural log of the activity coefficient of S in metal
-# Full formula: lngS = log_to_ln * (-9.00 + 14530.0/T + 220.27*(P_GPa/T) + log(FeO_silicate) - logC_S)
-# GRT_T[21] from Gibbs.py already contains: (-R*T*lngS_base + GmetalFe)/(R*T)
-lngS = - log_to_ln * (-9.00 + 14530.0 / T_SME - logC_S + log(var['FeO_silicate']/total_silicate)) #+ 220.27 * P_SME / T_SME
+# From Calvo et al. 2026
+# Terms for CaO, TiO2, and K2O are omitted because those species are not tracked.
+# GRT_T[21] from Gibbs_S_N_Version.py contains the temperature-dependent base term.
+# lngS keeps only the composition-dependent correction.
+logC_S = (-5.704 + 3.15 * var['FeO_silicate'] + 0.12 * var['MgO_silicate'] + 0.75 * var['Na2O_silicate'])
+lngS = - log_to_ln * (-logC_S + log(var['FeO_silicate']))
 
 lngH2 = 0.0
 lngH2Osilicate = 0.0
@@ -153,7 +144,7 @@ f1 = 0.5 * log(var['Si_metal']) + 0.5 * lngSi + log(var['FeO_silicate']) - log(v
 # f2:  MgSiO3 (silicate) <-> MgO (silicate) + SiO2 (silicate)
 f2 = log(var['MgO_silicate']) + log(var['SiO2_silicate']) - log(var['MgSiO3_silicate']) + GRT_T[2]
 
-# f3:  0.5 SiO2 (silicate) <-> 0.5 Si (metal) + O (metal)
+# f3:  0.5 Si (metal) + O (metal) <-> 0.5 SiO2 (silicate)
 f3 = 0.5 * log(var['SiO2_silicate']) - log(var['O_metal']) - lngO - 0.5 * log(var['Si_metal']) - 0.5 * lngSi + GRT_T[3]	#Check sign
 
 # f4: 2 H (metal) <-> H2 (silicate)
