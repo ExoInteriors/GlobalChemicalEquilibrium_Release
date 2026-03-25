@@ -11,6 +11,18 @@ Global Chemical Equilibrium Code Documentation
    `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
    documentation for details.
 
+
+A high-performance numerical framework designed to simulate the multi-phase chemical interactions between a
+planet's atmosphere, magma ocean, and metallic core.
+
+
+Main Authors: Simon Grimm, Aaron Werlen, Caroline Dorn. ETH Zürich, Switzerland.
+
+Based on the Chemical Equilibrium Code from Hilke Schlichting and Edward Young (2022).
+
+
+
+
 .. toctree::
    :maxdepth: 2
 
