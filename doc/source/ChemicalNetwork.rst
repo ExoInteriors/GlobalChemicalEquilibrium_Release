@@ -187,5 +187,16 @@ The Sulfur Nitrogen Version
 ===========================
 
 
-TBD
+The `sulfur nitrogen version` adds the following reactions to the `standard version`:
 
+.. math::
+	4 \text{FeO}_{1.5,\text{silicate}} & \rightleftharpoons & 4 \text{FeO}_{\text{silicate}} + \text{O2}_{\text{gas}} & &{R20}\\
+	\text{FeS}_{\text{silicate}} & \rightleftharpoons & \text{Fe}_{\text{metal}} + \text{S}_{\text{metal}} & &{R21}\\
+	2 \text{FeO}_{\text{silicate}} + 2 \text{SO2}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & 2 \text{FeSO4}_{\text{silicate}} & &{R22}\\
+	\text{H2S}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & \text{SO2}_{\text{gas}} + \text{H2}_{\text{gas}} & &{R23}\\
+	3 \text{H2}_{\text{silicate}} + \text{FeO}_{\text{silicate}} + \text{SO2}_{\text{gas}} & \rightleftharpoons & 3 \text{H2O}_{\text{silicate}} + \text{FeS}_{\text{silicate}} & &{R24}\\
+	\text{N2}_{\text{gas}} & \rightleftharpoons & \text{N2}_{\text{silicate}} & &{R25}\\
+	3 \text{H2}_{\text{gas}} + \text{N2}_{\text{gas}} & \rightleftharpoons & 2 \text{NH3}_{\text{gas}} & &{R26}\\
+	\text{HCN}_{\text{gas}} + 3 \text{H2}_{\text{gas}} & \rightleftharpoons & \text{NH3}_{\text{gas}} + \text{CH4}_{\text{gas}} & &{R27}
+
+See Werlen et al. (2026, in review).
