@@ -74,9 +74,8 @@ nN   = sy.symbols('nN', real=True)
 Mplanet_Mearth = sy.symbols('Mplanet_Mearth', real=True)
 T_AMOI = sy.symbols('T_AMOI', real=True)
 T_SME = sy.symbols('T_SME', real=True)
-P_SME = sy.symbols('P_SME', real=True)
 Pstd = sy.symbols('Pstd', real=True)
-Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, nS, nN, Mplanet_Mearth, T_AMOI, T_SME, Pstd, P_SME]
+Parameters = [nSi, nMg, nO, nFe, nH, nNa, nC, nS, nN, Mplanet_Mearth, T_AMOI, T_SME, Pstd]
 
 
 #Don't change the following parameters

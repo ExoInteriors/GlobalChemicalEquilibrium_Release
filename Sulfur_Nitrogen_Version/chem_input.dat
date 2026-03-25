@@ -14,7 +14,6 @@ nN = 36.4
 Mplanet_Mearth = 5
 T_AMOI = 3000
 T_SME = 3500
-P_SME = 10
 Pstd = 1.0
 
 # Boundaries
