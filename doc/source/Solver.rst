@@ -71,7 +71,7 @@ AdamaxW
 ^^^^^^^
 
 
-An interation of the AdamW optimizer includes these steps:
+An single iteration of the AdamW optimizer includes these steps:
 
 .. math::
 

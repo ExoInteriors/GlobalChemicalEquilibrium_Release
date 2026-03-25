@@ -14,9 +14,11 @@ Global Chemical Equilibrium Code Documentation
 .. toctree::
    :maxdepth: 2
 
+   License.rst
    Requirements.rst
+   Versions.rst
    ChemicalNetwork.rst
-   Equations.rst
+   Tutorial.rst
    Files.rst
    Solver.rst
    Gibbs.rst

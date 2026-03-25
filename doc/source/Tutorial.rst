@@ -2,12 +2,12 @@ Tutorial
 ========
 
 
-This section describes how to modify the chemical network equations can be modified and how the code 
-can be used.
+This section describes how the chemical network equations can be modified and how the code can be used.
 
 
 The default chemical network equations are included in the :literal:`Standard_Version` directory.
-If a different chemical network is used, then copy the :literal:`Standard_Version` directory in a new folder and execute all of the following steps in that working directory.
+If a different chemical network is used, then copy the :literal:`Standard_Version` directory in a new folder and
+execute all of the following steps in that working directory.
 
 
 Step 1: Modify the chemical network equations file Equations.py 
@@ -21,7 +21,7 @@ Therefore the given syntax and structure in the :literal:`Equations.py` must be 
 The file can also named differently when desired.
 
 
-The :literal:`Equations.py` file is structured into different sections. In the following we will describe all relevant parts.
+The :literal:`Equations.py` file is structured into different sections. In the following we will describe all relevant parts:
 
 
 Section 1: List the used variables
@@ -74,7 +74,7 @@ Note that the following parameters must not be changed by the user:
 Section 3: Provide the values of the molar masses 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Check if all species are included in the '../Molecular_Weight.dat' file. If they are not included there, add the
+Check if all species are included in the `../Molecular_Weight.dat` file. If they are not included there, add the
 molecular weights in g/mol to that file.
 
 This is needed for the pressure calculation.
@@ -151,5 +151,5 @@ To run the code, type::
 	./solver
 
 This will run the code. 
-Learn more about the input and output files here.	
+Learn more about the input and output files here: :ref:`files`.	
 
