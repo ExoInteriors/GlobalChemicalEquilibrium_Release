@@ -12,25 +12,27 @@ The standard version of the code uses the chemical network from :cite:p:`Schlich
  These are:
 
 .. math::
-	\text{Na}_2 \text{SiO}_\text{3,silicate} & \rightleftharpoons & \text{Na}_2 \text{O}_\text{silicate} + \text{SiO}_\text{2,silicate}                             &	&{R1}\\
-	\frac{1}{2} \text{SiO}_\text{2,silicate} + \text{Fe}_{\text{metal}}  & \rightleftharpoons & \text{FeO}_\text{silicate} + \frac{1}{2}\text{Si}_{\text{metal}}    &	&{R2}\\
-	\text{MgSiO}_\text{3,silicate} & \rightleftharpoons & \text{MgO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&{R3}\\
-	\text{O}_{\text{metal}} + \frac{1}{2} \text{Si}_{\text{metal}} & \rightleftharpoons & \frac{1}{2} \text{SiO}_\text{2,silicate}                                  &	&{R4}\\
-	2\text{H}_\text{metal} & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                      &	&{R5}\\
-	\text{FeSiO}_\text{3,silicate} & \rightleftharpoons & \text{FeO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&{R6}\\
-	2\text{H}_2 \text{O}_\text{silicate} + \text{Si}_\text{metal} & \rightleftharpoons & \text{SiO}_\text{2,silicate} + 2 \text{H}_{2, \text{silicate}}             &	&{R7}\\
-	\text{CO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2,\text{gas}}                                                      &	&{R8}\\
-	\text{CH}_{4,\text{gas}} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & 2 \text{H}_\text{2,gas} + \text{CO}_\text{gas}                            &	&{R9}\\
-	\text{H}_{2,\text{gas}} + \frac{1}{2}\text{O}_{2,\text{gas}}  & \rightleftharpoons & \text{H}_2 \text{O}_\text{gas}                                             &	&{R10}\\
-	\text{FeO}_\text{silicate} & \rightleftharpoons & \text{Fe}_\text{gas} + \frac{1}{2} \text{O}_{2.\text{gas}}                                                    &	&{R11}\\
-	\text{MgO}_\text{silicate} & \rightleftharpoons & \text{Mg}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                    &	&{R12}\\
-	\text{SiO}_\text{2,silicate} & \rightleftharpoons & \text{SiO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                 &	&{R13}\\
-	\text{Na}_2 \text{O}_\text{silicate} & \rightleftharpoons & 2 \text{Na}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                        &	&{R14}\\
-	\text{H}_{2.\text{gas}}  & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                    &	&{R15}\\
-	\text{H}_2 \text{O}_\text{gas} & \rightleftharpoons & \text{H}_2 \text{O}_\text{silicate}                                                                       &	&{R16}\\
-	\text{CO}_\text{gas} & \rightleftharpoons & \text{CO}_\text{silicate}                                                                                           &	&{R17}\\
-	\text{CO}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2, \text{silicate}}                                                                                  &	&{R18}\\
-	\text{SiH}_{4,\text{gas}} + \frac{1}{2} \text{O}_\text{2,gas}  & \rightleftharpoons & \text{SiO}_{\text{gas}} + 2 \text{H}_\text{2.gas}                         &	&{R19}
+	\begin{aligned}
+	\text{Na}_2 \text{SiO}_\text{3,silicate} & \rightleftharpoons & \text{Na}_2 \text{O}_\text{silicate} + \text{SiO}_\text{2,silicate}                             &	&(R1)\\
+	\frac{1}{2} \text{SiO}_\text{2,silicate} + \text{Fe}_{\text{metal}}  & \rightleftharpoons & \text{FeO}_\text{silicate} + \frac{1}{2}\text{Si}_{\text{metal}}    &	&(R2)\\
+	\text{MgSiO}_\text{3,silicate} & \rightleftharpoons & \text{MgO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&(R3)\\
+	\text{O}_{\text{metal}} + \frac{1}{2} \text{Si}_{\text{metal}} & \rightleftharpoons & \frac{1}{2} \text{SiO}_\text{2,silicate}                                  &	&(R4)\\
+	2\text{H}_\text{metal} & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                      &	&(R5)\\
+	\text{FeSiO}_\text{3,silicate} & \rightleftharpoons & \text{FeO}_\text{silicate} + \text{SiO}_\text{2,silicate}                                                 &	&(R6)\\
+	2\text{H}_2 \text{O}_\text{silicate} + \text{Si}_\text{metal} & \rightleftharpoons & \text{SiO}_\text{2,silicate} + 2 \text{H}_{2, \text{silicate}}             &	&(R7)\\
+	\text{CO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2,\text{gas}}                                                      &	&(R8)\\
+	\text{CH}_{4,\text{gas}} + \frac{1}{2} \text{O}_{2,\text{gas}} & \rightleftharpoons & 2 \text{H}_\text{2,gas} + \text{CO}_\text{gas}                            &	&(R9)\\
+	\text{H}_{2,\text{gas}} + \frac{1}{2}\text{O}_{2,\text{gas}}  & \rightleftharpoons & \text{H}_2 \text{O}_\text{gas}                                             &	&(R10)\\
+	\text{FeO}_\text{silicate} & \rightleftharpoons & \text{Fe}_\text{gas} + \frac{1}{2} \text{O}_{2.\text{gas}}                                                    &	&(R11)\\
+	\text{MgO}_\text{silicate} & \rightleftharpoons & \text{Mg}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                    &	&(R12)\\
+	\text{SiO}_\text{2,silicate} & \rightleftharpoons & \text{SiO}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                                 &	&(R13)\\
+	\text{Na}_2 \text{O}_\text{silicate} & \rightleftharpoons & 2 \text{Na}_\text{gas} + \frac{1}{2} \text{O}_{2,\text{gas}}                                        &	&(R14)\\
+	\text{H}_{2.\text{gas}}  & \rightleftharpoons & \text{H}_{2,\text{silicate}}                                                                                    &	&(R15)\\
+	\text{H}_2 \text{O}_\text{gas} & \rightleftharpoons & \text{H}_2 \text{O}_\text{silicate}                                                                       &	&(R16)\\
+	\text{CO}_\text{gas} & \rightleftharpoons & \text{CO}_\text{silicate}                                                                                           &	&(R17)\\
+	\text{CO}_{2,\text{gas}} & \rightleftharpoons & \text{CO}_{2, \text{silicate}}                                                                                  &	&(R18)\\
+	\text{SiH}_{4,\text{gas}} + \frac{1}{2} \text{O}_\text{2,gas}  & \rightleftharpoons & \text{SiO}_{\text{gas}} + 2 \text{H}_\text{2.gas}                         &	&(R19)
+	\end{aligned}
 
 The system consists of:
 
@@ -175,7 +177,9 @@ The Carbon Version
 The `carbon version` replaces equation R19 of the `standard version` with 
 
 .. math::
-	\text{C}_{\text{metal}} + \text{O}_{\text{metal}} & \rightleftharpoons & \text{CO}_{\text{silicate}}                 &       &{R19}\\
+	\begin{aligned}
+	\text{C}_{\text{metal}} + \text{O}_{\text{metal}} & \rightleftharpoons & \text{CO}_{\text{silicate}}  &      &(R19)\\
+	\end{aligned}
 
 See :cite:p:`Werlen2025`.
 
@@ -190,13 +194,15 @@ The Sulfur Nitrogen Version
 The `sulfur nitrogen version` adds the following reactions to the `standard version`:
 
 .. math::
-	4 \text{FeO}_{1.5,\text{silicate}} & \rightleftharpoons & 4 \text{FeO}_{\text{silicate}} + \text{O2}_{\text{gas}} & &{R20}\\
-	\text{FeS}_{\text{silicate}} & \rightleftharpoons & \text{Fe}_{\text{metal}} + \text{S}_{\text{metal}} & &{R21}\\
-	2 \text{FeO}_{\text{silicate}} + 2 \text{SO2}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & 2 \text{FeSO4}_{\text{silicate}} & &{R22}\\
-	\text{H2S}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & \text{SO2}_{\text{gas}} + \text{H2}_{\text{gas}} & &{R23}\\
-	3 \text{H2}_{\text{silicate}} + \text{FeO}_{\text{silicate}} + \text{SO2}_{\text{gas}} & \rightleftharpoons & 3 \text{H2O}_{\text{silicate}} + \text{FeS}_{\text{silicate}} & &{R24}\\
-	\text{N2}_{\text{gas}} & \rightleftharpoons & \text{N2}_{\text{silicate}} & &{R25}\\
-	3 \text{H2}_{\text{gas}} + \text{N2}_{\text{gas}} & \rightleftharpoons & 2 \text{NH3}_{\text{gas}} & &{R26}\\
-	\text{HCN}_{\text{gas}} + 3 \text{H2}_{\text{gas}} & \rightleftharpoons & \text{NH3}_{\text{gas}} + \text{CH4}_{\text{gas}} & &{R27}
+	\begin{aligned}
+	4 \text{FeO}_{1.5,\text{silicate}} & \rightleftharpoons & 4 \text{FeO}_{\text{silicate}} + \text{O2}_{\text{gas}} & &(R20)\\
+	\text{FeS}_{\text{silicate}} & \rightleftharpoons & \text{Fe}_{\text{metal}} + \text{S}_{\text{metal}} & &(R21)\\
+	2 \text{FeO}_{\text{silicate}} + 2 \text{SO2}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & 2 \text{FeSO4}_{\text{silicate}} & &(R22)\\
+	\text{H2S}_{\text{gas}} + \text{O2}_{\text{gas}} & \rightleftharpoons & \text{SO2}_{\text{gas}} + \text{H2}_{\text{gas}} & &(R23)\\
+	3 \text{H2}_{\text{silicate}} + \text{FeO}_{\text{silicate}} + \text{SO2}_{\text{gas}} & \rightleftharpoons & 3 \text{H2O}_{\text{silicate}} + \text{FeS}_{\text{silicate}} & &(R24)\\
+	\text{N2}_{\text{gas}} & \rightleftharpoons & \text{N2}_{\text{silicate}} & &(R25)\\
+	3 \text{H2}_{\text{gas}} + \text{N2}_{\text{gas}} & \rightleftharpoons & 2 \text{NH3}_{\text{gas}} & &(R26)\\
+	\text{HCN}_{\text{gas}} + 3 \text{H2}_{\text{gas}} & \rightleftharpoons & \text{NH3}_{\text{gas}} + \text{CH4}_{\text{gas}} & &(R27)
+	\end{aligned}
 
 See Werlen et al. (2026, in review).

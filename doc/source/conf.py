@@ -8,7 +8,7 @@
 
 project = 'Global Chemical Equilibrium Code'
 copyright = '2025, Simon Grimm'
-author = 'Simon Grimm, Aaron Werlen, Caroline Dorn, Edward Young'
+author = 'Simon Grimm, Aaron Werlen, Annika Salmi, Caroline Dorn, Edward Young'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

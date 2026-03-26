@@ -4,7 +4,7 @@ A high-performance numerical framework designed to simulate the multi-phase chem
 planet's atmosphere, magma ocean, and metallic core.
 
 
-Main Authors: Simon Grimm, Aaron Werlen, Caroline Dorn. ETH Zürich, Switzerland.
+Main Authors: Simon Grimm, Aaron Werlen, Annika Salmi, Caroline Dorn. ETH Zürich, Switzerland.
 
 Based on the Chemical Equilibrium Code from Hilke Schlichting and Edward Young (2022).
 
