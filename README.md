@@ -9,6 +9,9 @@ Main Authors: Simon Grimm, Aaron Werlen, Annika Salmi, Caroline Dorn. ETH Züric
 Based on the Chemical Equilibrium Code from Hilke Schlichting and Edward Young (2022).
 
 
+[A Documentation can be found here](https://globalchemicalequilibrium-release.readthedocs.io/en/latest/)
+
+
 
 This release repository is generated automatically from the main development repository.
 
