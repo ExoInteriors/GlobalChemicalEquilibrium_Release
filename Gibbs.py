@@ -6,7 +6,10 @@ sys.path.append('..')
 from numpy import exp as exp
 from numpy import log
 from numpy import log10
-from src.constants import R, log_to_ln
+
+R = 8.314462618153  # J /(mol K)
+log_to_ln = 2.302585093
+
 
 # Chebyshev helper (used by FeO1.5 MELTS fit)
 def _chebyshev_poly(x, n):
@@ -1063,13 +1066,13 @@ GRT1=G1/(R*TK)
 
 # ------------------------------------
 # Reaction 2: MgSiO3 (silicate) <-> MgO (silicate) + SiO2 (silicate)
-#G3=-(log_to_ln*(0.42+2329.0/TK))*R*TK
+# G3=-(log_to_ln*(0.42+2329.0/TK))*R*TK
 G2=GmeltSiO2+GmeltMgO-GmeltMgSiO3
 GRT2=G2/(R*TK)
 
 # ------------------------------------
 # Reaction 3: 0.5 SiO2 (silicate) <-> 0.5 Si (metal) + O (metal)
-#G for FeO=Fe+O Badro et al. 2015 with correction for typo sign error
+# G for FeO=Fe+O Badro et al. 2015 with correction for typo sign error
 # for the H/R term confirmed by Julien Siebert (Pers. comm.)
 G_ox_metal=-log_to_ln*(2.736-11439.0/TK)*R*TK
 G3=-(G_ox_metal+G1) #negative sum of Gs for rxn 2 and FeO=Fe+O in Badro et al. 2015
@@ -1260,7 +1263,3 @@ print("GRT_26 =", GRT26[0], TK[0], file = gibbsFile)
 print("GRT_27 =", GRT27[0], TK[0], file = gibbsFile)
 
 gibbsFile.close()
-
-
-#for i in range(len(TK)):
-#	print(TK[i], GRT1[i])
