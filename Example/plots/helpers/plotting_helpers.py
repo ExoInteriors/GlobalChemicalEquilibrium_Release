@@ -6,7 +6,6 @@ This module provides utilities for:
 - Data preparation for plots
 - Generic plotting utilities
 """
-import itertools
 import math
 import os
 
@@ -15,7 +14,7 @@ import numpy as np
 
 from . import plot_constants
 from .data_processing_helpers import load_atomic_weights, weights_for_columns, weighted_sum
-from src.calc_fO2 import get_delta_IW, log10_fO2_IW_hirschmann2021
+from tools.calc_fO2 import get_delta_IW, log10_fO2_IW_hirschmann2021
 
 # ---------------------------------------------------------------------------
 # Module Constants
@@ -42,7 +41,10 @@ def get_delta_iw_series(df):
     n_FeO = df["FeO_silicate"].to_numpy(dtype=float) * n_melt   # FeO in melt
     n_Fe = df["Fe_metal"].to_numpy(dtype=float) * n_metal       # Fe in metal
 
-    P_GPa = 10.0  # IW buffer at P = 10 GPa
+    # P_GPa value is arbitrary: inside get_delta_IW the IW buffer terms cancel
+    # (ΔIW = 2·log10(a_FeO/a_Fe)), so the result is independent of pressure.
+    # currently pressure dependency is not used throughout the code.
+    P_GPa = 10.0
     with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
         delta = get_delta_IW(P_GPa, T, n_FeO, n_melt, n_Fe, n_metal)
 
@@ -82,29 +84,12 @@ def get_matm_mplanet_series(df):
 
     Mtotal = Matm + Msilicate + Mmetal (mass of all phases in grams).
     Each phase mass = moles_phase * (weighted sum of species molar masses in that phase).
-
-    When HHe=0 the solver can return NaN for Moles_atm or gas species (e.g. 0/0 in
-    equilibrium), so we treat zero atmosphere and invalid results as 0 ratio.
+    NaN handling (e.g. when HHe=0) is done inside mass_arrays.
     """
     if df is None or df.empty:
         return np.array([])
     mu = load_atomic_weights()
-    # Molar mass per mole of phase (grams per mole of phase)
-    gas_weights = weights_for_columns(mu, plot_constants.GAS_COLUMNS, df)
-    silicate_weights = weights_for_columns(mu, plot_constants.SILICATE_COLUMNS, df)
-    metal_weights = weights_for_columns(mu, plot_constants.METAL_COLUMNS, df)
-    grams_per_mole_atm = weighted_sum(df, gas_weights)
-    grams_per_mole_silicate = weighted_sum(df, silicate_weights)
-    grams_per_mole_metal = weighted_sum(df, metal_weights)
-    # Phase masses in grams
-    moles_atm = np.asarray(df["Moles_atm"].to_numpy() if "Moles_atm" in df.columns else np.zeros(len(df)), dtype=float)
-    moles_silicate = np.asarray(df["Moles_silicate"].to_numpy() if "Moles_silicate" in df.columns else np.zeros(len(df)), dtype=float)
-    moles_metal = np.asarray(df["Moles_metal"].to_numpy() if "Moles_metal" in df.columns else np.zeros(len(df)), dtype=float)
-    grams_atm = np.where(np.isfinite(moles_atm) & np.isfinite(grams_per_mole_atm),
-                         moles_atm * grams_per_mole_atm, 0.0)
-    grams_silicate = moles_silicate * grams_per_mole_silicate
-    grams_metal = moles_metal * grams_per_mole_metal
-    total_mass = grams_atm + grams_silicate + grams_metal
+    _, _, _, grams_atm, _, _, total_mass = mass_arrays(df, mu)
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = np.where(total_mass > 0, grams_atm / total_mass, 0.0)
     return np.where(np.isfinite(ratio), ratio, 0.0)
@@ -118,11 +103,11 @@ def get_matm_mplanet_series(df):
 # default_mode: 'zeros' returns zeros if column missing, 'arange' returns np.arange(len(df))
 AXIS_DEFINITIONS = {
     'HHe': {
-        'label': 'Accreted H/He from primordial gas (mol %)',
+        'label': r'Accreted H from primordial gas (wt \%)',
         'column': 'HHe_ratio', 'multiplier': 100.0, 'fallback': 'iHHe mass fraction', 'default': 'arange',
     },
     'Water': {
-        'label': 'Accreted water after formation (mol %)',
+        'label': r'Accreted water after formation (wt \%)',
         'column': 'fWater', 'multiplier': 100.0, 'default': 'zeros',
     },
     'P_AMOI': {
@@ -142,11 +127,12 @@ AXIS_DEFINITIONS = {
         'column': 'T_SME', 'multiplier': 1.0, 'default': 'zeros',
     },
     'Planetmass': {
-        'label': 'Planet mass (M⊕)',
+        # LaTeX math only (no Unicode): usetex/pdfLaTeX rejects raw Δ, −, ⊕, etc.
+        'label': r'Planet mass ($M_\oplus$)',
         'column': 'Planetmass', 'multiplier': 1.0, 'default': 'zeros',
     },
     'delta_IW': {
-        'label': 'ΔIW (log fO2 model − log fO2_IW)',
+        'label': r'$\Delta$IW (log $f_{\mathrm{O}_2}$ model $-$ log $f_{\mathrm{O}_2,\mathrm{IW}}$)',
         'getter': get_delta_iw_series,  # complex calculation, keep as function
     },
     'O': {
@@ -154,7 +140,7 @@ AXIS_DEFINITIONS = {
         'column': 'iDeltaO_frac', 'multiplier': 100.0, 'default': 'zeros',
     },
     'Matm_Mplanet': {
-        'label': 'Atmosphere mass / planet mass',
+        'label': plot_constants.LATEX_PLOT["matm_over_mplanet"],
         'getter': get_matm_mplanet_series,  # complex calculation, keep as function
     },
 }
@@ -171,16 +157,12 @@ AXIS_ALIASES = {
 }
 
 
-def axis_keys():
-    """Return the list of axis identifiers we support for plotting."""
-    return list(AXIS_DEFINITIONS.keys())
-
-
 def axis_series(df, axis_key):
     """Return the x-axis data array for the given axis key."""
     axis_key = AXIS_ALIASES.get(axis_key, axis_key)
     config = AXIS_DEFINITIONS.get(axis_key)
     if config is None:
+        print(f"Warning: unknown axis key '{axis_key}', falling back to row index")
         return np.arange(len(df)) if df is not None else np.array([])
 
     # If a custom getter function is defined, use it
@@ -209,62 +191,70 @@ def axis_label(axis_key):
     return config.get('label', axis_key)
 
 
+def make_panel_title(base_title, axis_key, value):
+    """Create a panel title by combining base title with axis-specific descriptor.
+    
+    If value is None, returns just base_title.
+    Otherwise returns "{base_title} -- {descriptor}" (ASCII --; em-dash breaks pdfLaTeX).
+    """
+    if value is None:
+        return base_title
+    if axis_key == "HHe":
+        panel = "no accreted water" if value == 0 else f"accreted water = {value:.3g}"
+    elif axis_key == "Water":
+        panel = f"HHe = {value:.3g}"
+    else:
+        panel = str(value)
+    return f"{base_title} -- {panel}"
+
+
 def axis_panel_subsets(axis_key, df):
-    """Return panel subsets for multi-plot axes (HHe vs water or Water vs HHe)."""
+    """Return panel subsets for multi-plot axes (HHe vs water or Water vs HHe).
+
+    When plotting HHe, panels are split by distinct fWater values (zero-water first).
+    When plotting Water, panels are split by distinct HHe_ratio values.
+    """
     if df is None or df.empty:
         return []
 
-    if axis_key == "HHe" and "fWater" in df.columns:
-        values = sorted(df["fWater"].dropna().unique(), key=lambda w: (w != 0, w))
-        if len(values) <= 1:
-            return []
-        panels = []
-        for value in values:
-            mask = np.isclose(df["fWater"].to_numpy(dtype=float), value, atol=1e-8, rtol=1e-6)
-            if not np.any(mask):
-                continue
-            subset = df.loc[mask].reset_index(drop=True)
-            if subset.empty:
-                continue
-            panels.append({"value": value, "df": subset, "mask": mask})
-        return panels
+    # (filter_column, sort_key): split the data by distinct values of filter_column
+    panel_config = {
+        "HHe": ("fWater", lambda w: (w != 0, w)),
+        "Water": ("HHe_ratio", None),
+    }
+    if axis_key not in panel_config:
+        return []
+    filter_col, sort_key = panel_config[axis_key]
+    if filter_col not in df.columns:
+        return []
 
-    if axis_key == "Water" and "HHe_ratio" in df.columns:
-        values = sorted(df["HHe_ratio"].dropna().unique())
-        if len(values) <= 1:
-            return []
-        panels = []
-        for value in values:
-            mask = np.isclose(df["HHe_ratio"].to_numpy(dtype=float), value, atol=1e-8, rtol=1e-6)
-            if not np.any(mask):
-                continue
-            subset = df.loc[mask].reset_index(drop=True)
-            if subset.empty:
-                continue
-            panels.append({"value": value, "df": subset, "mask": mask})
-        return panels
+    unique_vals = df[filter_col].dropna().unique()
+    values = sorted(unique_vals, key=sort_key) if sort_key else sorted(unique_vals)
+    if len(values) <= 1:
+        return []
 
-    return []
+    panels = []
+    for value in values:
+        mask = np.isclose(df[filter_col].to_numpy(dtype=float), value, atol=1e-8, rtol=1e-6)
+        if not np.any(mask):
+            continue
+        subset = df.loc[mask].reset_index(drop=True)
+        if subset.empty:
+            continue
+        panels.append({"value": value, "df": subset})
+    return panels
 
 
 # ---------------------------------------------------------------------------
 # Plotting Utilities
 # ---------------------------------------------------------------------------
 
-def positive_bounds(values):
-    """Return (ymin, ymax) bounds for positive values suitable for log scale."""
-    positive = values[np.isfinite(values) & (values > 0)]
-    if positive.size == 0:
-        return EPSILON, 1.0
-    ymin = max(positive.min() * 0.5, EPSILON)
-    ymax = positive.max() * 2.0
-    if ymax <= ymin:
-        ymax = ymin * 10.0
-    return ymin, min(ymax, 1.0)
+def set_axis_x_limits(ax, x_vals, max_ticks=15):
+    """Set x-axis limits to data min/max and one tick per unique x value.
 
-
-def set_axis_x_limits(ax, x_vals):
-    """Set x-axis limits to data min/max and one tick per unique x value."""
+    If there are more than max_ticks unique values (continuous data), ticks
+    are left to matplotlib's auto-locator to avoid unreadable labels.
+    """
     finite = np.asarray(x_vals)[np.isfinite(x_vals)]
     if finite.size == 0:
         return
@@ -276,7 +266,9 @@ def set_axis_x_limits(ax, x_vals):
     else:
         ax.set_xlim(x_min, x_max)
     unique_x = np.unique(finite)
-    ax.set_xticks(unique_x)
+    # Only force explicit ticks for discrete parameter sweeps
+    if len(unique_x) <= max_ticks:
+        ax.set_xticks(unique_x)
 
 
 def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
@@ -324,101 +316,93 @@ def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
     if top_label:
         ax_top.set_xlabel(top_label, fontsize=ax.xaxis.label.get_fontsize())
     ax_top.tick_params(axis="x", labeltop=True, labelbottom=False)
+    # Match top tick label size to the primary axis when it was set (e.g. bulk figures).
+    tp = ax.xaxis.get_tick_params(which="major")
+    labelsize = tp.get("labelsize")
+    if labelsize is not None:
+        ax_top.tick_params(axis="x", labelsize=labelsize)
     return ax_top
 
 
-def choose_values(available, requested, limit):
-    """Select values to plot from available data.
+
+def _safe_nanmean(arr):
+    """Return nanmean of array, or np.nan if no finite values (avoids 'Mean of empty slice' warning)."""
+    a = np.asarray(arr, dtype=float)
+    finite = a[np.isfinite(a)]
+    return np.nan if finite.size == 0 else np.mean(finite)
+
+
+def sort_by_mean_and_get_colors(fractions, labels, cmap_name="turbo", mask_nonpositive=False):
+    """Sort species by mean value and assign colormap colors.
     
-    If `requested` is provided, return matching values from `available`.
-    Otherwise, return up to `limit` unique values from `available`.
+    Args:
+        fractions: 2D array (n_points, n_species)
+        labels: List of species labels
+        cmap_name: Colormap name (default "turbo")
+        mask_nonpositive: If True, treat non-positive values as NaN when computing mean
+    
+    Returns:
+        (sorted_indices, sorted_labels, colors) tuple
     """
-    values = np.asarray(available, dtype=float)
-    values = np.unique(values[np.isfinite(values)])
-    values.sort()
-    if requested:
-        picked = []
-        for value in requested:
-            matches = values[np.isclose(values, float(value), atol=1e-6, rtol=1e-6)]
-            if matches.size:
-                picked.append(float(matches[0]))
-        if not picked:
-            raise ValueError("None of the requested values were found in the data.")
-        return picked
-    return values[:limit].tolist()
-
-
-def colormap_palette(cmap_name: str, count: int):
-    """Generate a palette of colors sampled evenly from a matplotlib colormap."""
-    if count <= 0:
-        return []
+    if mask_nonpositive:
+        mean_vals = [_safe_nanmean(np.where(fractions[:, i] <= 0, np.nan, fractions[:, i])) for i in range(len(labels))]
+    else:
+        mean_vals = [_safe_nanmean(fractions[:, i]) for i in range(len(labels))]
+    sorted_indices = np.argsort(mean_vals)[::-1]  # descending: largest mean first
+    sorted_labels = [labels[i] for i in sorted_indices]
+    
     cmap = plt.get_cmap(cmap_name)
-    if count == 1:
-        return [cmap(0.5)]
-    return [cmap(i / (count - 1)) for i in range(count)]
+    n = len(sorted_labels)
+    colors = [cmap(1 - i / (n - 1)) if n > 1 else cmap(0.5) for i in range(n)]
+    return sorted_indices, sorted_labels, colors
+
+
+def detect_matm_dual_axis(df, axis_key):
+    """Detect dual x-axis configuration for Matm_Mplanet plots.
+    
+    When plotting against Matm_Mplanet, determines which base axis (HHe or Water)
+    varies and returns the configuration for a dual x-axis.
+    
+    Note: matm_vals is only populated for H/He accretion (not water accretion),
+    since Matm/Mplanet notation is only relevant for primordial gas accretion.
+    
+    Args:
+        df: DataFrame with results.
+        axis_key: The requested axis key.
+    
+    Returns:
+        Dict with keys: bottom_axis_key, label, bottom_vals, matm_vals.
+        matm_vals is None for water accretion (no dual axis needed).
+        Returns None if not a Matm_Mplanet plot or no variation detected.
+    """
+    if axis_key != "Matm_Mplanet":
+        return None
+    
+    hhe_vals = axis_series(df, "HHe")
+    water_vals = axis_series(df, "Water")
+    hhe_varied = len(np.unique(hhe_vals[np.isfinite(hhe_vals)])) > 1 if hhe_vals.size > 0 else False
+    water_varied = len(np.unique(water_vals[np.isfinite(water_vals)])) > 1 if water_vals.size > 0 else False
+
+    if hhe_varied:
+        return {
+            "bottom_axis_key": "HHe",
+            "label": r"Accreted H from primordial gas (wt \%)",
+            "bottom_vals": hhe_vals,
+            "matm_vals": get_matm_mplanet_series(df),  # dual axis for H/He accretion
+        }
+    if water_varied:
+        return {
+            "bottom_axis_key": "Water",
+            "label": r"Accreted water after formation (wt \%)",
+            "bottom_vals": water_vals,
+            "matm_vals": None,  # no dual axis for water accretion
+        }
+    return None
 
 
 # ---------------------------------------------------------------------------
 # Generic Plotting Functions
 # ---------------------------------------------------------------------------
-
-def draw_stacked_fractions(ax, x_vals, fractions, labels, colors=None, color_map=None, use_hatching=False,
-    use_alpha_cycle=False,
-    annotation_fn=None,
-):
-    """Draw a stacked area plot of fractions.
-
-    Args:
-        ax: Matplotlib axes to draw on.
-        x_vals: 1D array of x-axis values.
-        fractions: 2D array of shape (n_points, n_categories), rows should sum to ~1.
-        labels: List of labels for each category (column).
-        colors: Optional list of colors (one per category). If None, uses matplotlib's default cycle.
-        color_map: Optional dict mapping label -> color (takes precedence over colors list).
-        use_hatching: If True, apply HATCH_CYCLES patterns and black edges.
-        use_alpha_cycle: If True, cycle alpha between 0.6 and 0.8.
-        annotation_fn: Optional callable(ax, x_vals, fractions, labels) for custom annotations.
-
-    Returns:
-        True if plot was drawn, False if no valid data.
-    """
-    if len(x_vals) == 0 or fractions.size == 0:
-        return False
-
-    # Use matplotlib's default color cycle (tab10) if no colors provided
-    default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    color_source = colors if colors else default_colors
-    color_iter = itertools.cycle(color_source)
-    alpha_iter = itertools.cycle([0.6, 0.8]) if use_alpha_cycle else itertools.repeat(1.0)
-
-    cumulative = np.zeros_like(x_vals, dtype=float)
-    ax.set_xlim(np.min(x_vals), np.max(x_vals))
-
-    for i, label in enumerate(labels):
-        # Determine color
-        if color_map and label in color_map:
-            color = color_map[label]
-        else:
-            color = next(color_iter)
-
-        alpha = next(alpha_iter)
-        frac_col = fractions[:, i]
-
-        fill_kwargs = dict(label=label, color=color, alpha=alpha)
-        if use_hatching:
-            hatch = plot_constants.HATCH_CYCLES[(i // len(color_source)) % len(plot_constants.HATCH_CYCLES)]
-            fill_kwargs.update(linewidth=0.5, edgecolor='k', hatch=hatch)
-
-        ax.fill_between(x_vals, cumulative, cumulative + frac_col, **fill_kwargs)
-        cumulative = cumulative + frac_col
-
-    ax.set_ylim(0, 1.05)
-
-    if annotation_fn:
-        annotation_fn(ax, x_vals, fractions, labels)
-
-    return True
-
 
 def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel_height=4, single_figsize=(8, 6), suptitle=None):
     """Reusable helper to plot multi-panel or single-panel figures based on axis subsets.
@@ -453,8 +437,8 @@ def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel
         fig.tight_layout()
         plot_dir = os.path.join(path, 'plots', axis_key)
         os.makedirs(plot_dir, exist_ok=True)
-        plt.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
-        plt.close()
+        fig.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
+        plt.close(fig)
     else:
         fig, ax = plt.subplots(figsize=single_figsize)
         if draw_fn(ax, df, axis_key):
@@ -464,39 +448,47 @@ def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel
             fig.tight_layout()
             plot_dir = os.path.join(path, 'plots', axis_key)
             os.makedirs(plot_dir, exist_ok=True)
-            plt.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
-            plt.close()
+            fig.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
+        plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
 # Axis and Slice Configuration for Phase Line Plots
 # ---------------------------------------------------------------------------
 
+# Secondary axis config for variable_mass_phase_lines.py.
+# Entries that overlap with AXIS_DEFINITIONS use the same canonical labels.
 # Config entries can specify:
 # - "axis_key": use axis_series(df, key) to get values
-# - "column": read directly from df[column]
+# - "column": read directly from df[column] (for pre-computed columns)
 # - "getter": callable(df) -> array for complex calculations
 
 AXIS_CONFIG: dict[str, dict] = {
-    "HHe": {"axis_key": "HHe", "label": "Accreted H/He (mol %)"},
-    "P_GPa": {"axis_key": "P_SME", "label": "SME pressure (GPa)"},
-    "delta_IW": {"column": "delta_IW", "label": "ΔIW (log fO2 model − log fO2_IW)"},
-    "log10_fO2": {"column": "log10_fO2", "label": "log₁₀(fO₂) (bar)"},
-    "Matm_Mplanet": {"getter": get_matm_mplanet_series, "label": "Atmosphere mass / planet mass"},
+    "HHe": {"axis_key": "HHe", "label": AXIS_DEFINITIONS["HHe"]["label"]},
+    "P_GPa": {"axis_key": "P_SME", "label": AXIS_DEFINITIONS["P_SME"]["label"]},
+    "delta_IW": {"column": "delta_IW", "label": AXIS_DEFINITIONS["delta_IW"]["label"]},
+    "log10_fO2": {"column": "log10_fO2", "label": r'$\log_{10}(f_{\mathrm{O}_2})$ (bar)'},
+    "Matm_Mplanet": {"getter": get_matm_mplanet_series, "label": AXIS_DEFINITIONS["Matm_Mplanet"]["label"]},
 }
 
 SLICE_CONFIG: dict[str, dict] = {
     "Planetmass": {
         "axis_key": "Planetmass",
         "label": "Planet mass",
-        "unit": "M⊕",
-        "format": lambda v: f"M={v:.1f} M⊕",
+        "unit": r"$M_\oplus$",
+        "format": lambda v: rf"M={v:.1f} $M_\oplus$",
     },
     "P_SME": {
         "axis_key": "P_SME",
         "label": "SME pressure",
         "unit": "GPa",
         "format": lambda v: f"P={v:.1f} GPa",
+    },
+    "HHe": {
+        "axis_key": "HHe",
+        "label": "Accreted H",
+        "unit": r"wt \%",
+        "format": lambda v: rf"H={v:.3g} wt\%",
     },
 }
 

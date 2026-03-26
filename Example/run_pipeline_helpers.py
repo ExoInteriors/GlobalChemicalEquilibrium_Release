@@ -3,7 +3,7 @@ import subprocess
 from dataclasses import fields
 from datetime import datetime
 import numpy as np
-from src.constants import repo_root
+from tools.constants import repo_root
 from Example.plots.helpers.plotting_helpers import AXIS_ALIASES, axis_keys
 
 
@@ -35,7 +35,7 @@ def infer_axis_list(params):
     """Infer axis keys from parameter arrays with multiple values."""
     inferred = []
     missing_axes = []
-    allowed_axes = set(axis_keys())
+    allowed_axes = set(AXIS_DEFINITIONS.keys())
 
     for field in fields(params):
         value = getattr(params, field.name)
@@ -61,3 +61,34 @@ def infer_axis_list(params):
         )
 
     return inferred
+
+
+def infer_axis_list_from_data(input_dir):
+    """Infer axis keys from existing results.dat (for just_plots when params is None).
+    
+    Reads results.dat and checks which axis columns have more than one unique value;
+    returns the list of axis keys so that all relevant plots (e.g. HHe vs P_SME) are generated.
+    """
+    results_path = os.path.join(input_dir, "results.dat")
+    if not os.path.isfile(results_path):
+        return ["HHe"]
+    try:
+        df = pd.read_csv(results_path, sep=r"\s+", nrows=10000)
+    except Exception:
+        return ["HHe"]
+    inferred = []
+    for axis_key, config in AXIS_DEFINITIONS.items():
+        col = config.get("column")
+        fallback = config.get("fallback")
+        if col and col in df.columns:
+            series = df[col]
+        elif fallback and fallback in df.columns:
+            series = df[fallback]
+        else:
+            continue
+        try:
+            if series.nunique() > 1:
+                inferred.append(axis_key)
+        except Exception:
+            continue
+    return inferred if inferred else ["HHe"]

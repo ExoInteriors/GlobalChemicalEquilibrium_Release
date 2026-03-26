@@ -1,6 +1,6 @@
 import os
 import shutil
-from src.constants import repo_root
+from tools.constants import repo_root
 
 
 def copy_inputs(input_dir, version='Sulfur_Version', gibbs_script='Sulfur_Nitrogen_Version/Gibbs_S_N_Version.py'):

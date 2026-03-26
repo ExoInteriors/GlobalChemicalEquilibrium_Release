@@ -4,14 +4,14 @@ import numpy as np
 import time
 from datetime import datetime
 
-from src.constants import repo_root
+from tools.constants import repo_root
 from create import create
 from copyToInput import copy_inputs
 from runAll import run_all
 from findMin import find_min
 from get_Results import get_results
 from Example.plots.plot_results import plot_results
-from run_pipeline_helpers import resolve_input_dir, build_solver, infer_axis_list
+from run_pipeline_helpers import resolve_input_dir, build_solver, infer_axis_list, infer_axis_list_from_data
 from params.gce_params import GCEParams
 
 def run_pipeline(new_input_dir_prefix=None,
@@ -37,7 +37,7 @@ def run_pipeline(new_input_dir_prefix=None,
     '''
     start_time = time.time()
     print(f"Started pipeline at {datetime.now().strftime('%H:%M')}")
-    gibbs_script = os.path.join(repo_root, 'Sulfur_Nitrogen_Version','Gibbs_S_N_Version.py')
+    gibbs_script = os.path.join(repo_root, 'Gibbs_S_N_Version.py')
 
     # Run if you are changing the version
     if build:
@@ -59,6 +59,9 @@ def run_pipeline(new_input_dir_prefix=None,
     if axis_list is None:
         if params is not None:
             axis_list = infer_axis_list(params)
+        elif just_plots:
+            # Re-plotting existing data: infer axes from results.dat so e.g. HHe vs P_SME plot runs
+            axis_list = infer_axis_list_from_data(input_dir)
         else:
             axis_list = ["HHe"]  # default axis when no params provided
     if just_plots:
@@ -69,11 +72,11 @@ def run_pipeline(new_input_dir_prefix=None,
     num_inputs, failures = create(version, params=params, output_dir=input_dir)
     copy_inputs(input_dir=input_dir, version=version, gibbs_script=gibbs_script)
     print("Running pipeline...")
-    run_all(expected_count=num_inputs, input_dir=input_dir)
-    find_min(input_dir=input_dir)
+    solver_failures = run_all(expected_count=num_inputs, input_dir=input_dir)
+    findmin_failures = find_min(input_dir=input_dir)
     get_results(input_dir)
-    if failures:
-        print(f"Finished with {len(failures)} failed case(s): {', '.join(failures)}")
+    if failures or solver_failures or findmin_failures:
+        print(f"Finished with {len(failures)} create, {len(solver_failures)} solver, {len(findmin_failures)} findMin failure(s)")
     else:
         print("All cases completed successfully.")
 
@@ -83,45 +86,41 @@ def run_pipeline(new_input_dir_prefix=None,
     print(f"Pipeline completed in {(end_time - start_time)/60} minutes.")
 
 if __name__ == "__main__":
-    # Option 1: Use GCEParams to customize parameters
-    water_params = GCEParams(
-        tarWaterarray=np.array([0.0, 0.1]),
-        Planetmassarray=np.array([5.0]),
-    )
-    run_pipeline(new_input_dir_prefix='test2', 
-                params=water_params,
-                version='Sulfur_Version', 
-                just_plots=False,
-                build=False,
-                only_sulfur_plots=False)
+
+    # water_results = GCEParams(
+    #     tarWaterarray=np.array([0.0, 0.025, 0.05, 0.075, 0.1]),
+    #     Planetmassarray=np.array([5.0]),
+    #     T_AMOI_array=np.array([3000.0]),
+    #     T_SME_array=np.array([3500.0]),
+    # )
+    # run_pipeline(new_input_dir_prefix='water', 
+    #             params=water_results,
+    #             version='Sulfur_Version', 
+    #             just_plots=False,
+    #             only_sulfur_plots=False)
+
     
-    # Option 2: Use defaults from create.py (no params needed)
-    # run_pipeline(new_input_dir_prefix='test_defaults', 
-    #             version='Sulfur_Version', 
-    #             just_plots=False,
-    #             build=False,
-    #             only_sulfur_plots=False,
-    #             axis_list=["HHe"])
-
-    # T_SME_PARAMS = GCEParams(
-    #     T_SME_array=np.array([2500.0, 3000.0, 3500.0]),
-    #     T_AMOI_array=np.array([2000.0, 2500.0, 3000.0]),
+    # water_results = GCEParams(
+    #     tarWaterarray=np.array([0.0, 0.025, 0.05, 0.075, 0.1]),
     #     Planetmassarray=np.array([5.0]),
+    #     T_AMOI_array=np.array([3000.0]),
+    #     T_SME_array=np.array([3500.0]),
     # )
-    # run_pipeline(new_input_dir_prefix='T_SME_T_AMOI', 
-    #             params=T_SME_PARAMS,
-    #             version='Sulfur_Version', 
+    # run_pipeline(new_input_dir_prefix='water', 
+    #             params=water_results,
+    #             version='Carbon_Version', 
     #             just_plots=False,
-    #             build=False,
-    #             only_sulfur_plots=True)
-
-    # O_PARAMS = GCEParams(
-    #     tarOarray=np.array([-0.3, 0.0, 0.3]),
-    #     Planetmassarray=np.array([5.0]),
-    # )
-    # run_pipeline(new_input_dir_prefix='O', 
-    #             params=O_PARAMS,
-    #             version='Sulfur_Version', 
-    #             just_plots=False,
-    #             build=False,
-    #             only_sulfur_plots=True)
+    #             only_sulfur_plots=False)
+    
+    HHe_pressure_params = GCEParams(
+        tarHHearray=np.array([0.01, 0.03, 0.05]),
+        P_SME_array=np.array([0.0, 10.0, 50.0]),
+        Planetmassarray=np.array([5.0]),
+        T_AMOI_array=np.array([3000.0]),
+        T_SME_array=np.array([3500.0]),
+    )
+    run_pipeline(new_input_dir_prefix='HHe_pressure', 
+                params=HHe_pressure_params,
+                version='Sulfur_Version', 
+                just_plots=True,
+                build=False)

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from .plot_constants import GAS_COLUMNS, METAL_COLUMNS, PHASE_MOLES_COLUMNS, PHASE_ORDER, SILICATE_COLUMNS, SULFUR_SPECIES_MW
-from src.constants import repo_root
+from tools.constants import repo_root
 
 
 # ---------------------------------------------------------------------------
@@ -39,23 +39,13 @@ def read_results(path) -> pd.DataFrame:
     if not results_path.exists():
         return pd.DataFrame()
     
-    df = pd.read_csv(results_path, delim_whitespace=True)
+    df = pd.read_csv(results_path, sep=r"\s+")
     df.columns = df.columns.str.lstrip("#")
     if "version" in df.columns:
         df = df.drop(columns=["version"])
     df = df.apply(pd.to_numeric, errors="coerce")
     return df.dropna(how="all").reset_index(drop=True)
 
-
-def read_summary(path: str) -> pd.DataFrame:
-    """Read the summary file that records the initial water fraction inputs."""
-    summary_path = os.path.join(path, 'summary_chem_input_GEC.csv')
-    if not os.path.exists(summary_path):
-        return pd.DataFrame()
-    df = pd.read_csv(summary_path)
-    if 'status' in df.columns:
-        df = df[df['status'] == 'success']
-    return df.reset_index(drop=True)
 
 
 def load_atomic_weights():
@@ -74,27 +64,12 @@ def load_atomic_weights():
                 except ValueError:
                     continue
                 mu[key] = val
-                if '_' in key:
-                    base = key.split('_')[0]
-                    if base not in mu:
-                        mu[base] = val
     return mu
 
 
 # ---------------------------------------------------------------------------
 # Data Utilities
 # ---------------------------------------------------------------------------
-
-def get_phase_from_species(species):
-    """Return the phase tag corresponding to the species name."""
-    if species.endswith('_gas'):
-        return 'atm'
-    if species.endswith('_metal'):
-        return 'metal'
-    if species.endswith('_silicate') or species.endswith('_melt'):
-        return 'silicate'
-    return 'silicate'
-
 
 def accumulate_element_by_phase(df, element, weights=None, phase_moles=None):
     """Accumulate element contributions by phase from species data.
@@ -123,7 +98,8 @@ def accumulate_element_by_phase(df, element, weights=None, phase_moles=None):
 
     for species, coeff in ELEMENT_SPECIES.get(element, []):
         arr = df[species].to_numpy(dtype=float) if species in df.columns else np.zeros(length, dtype=float)
-        phase = get_phase_from_species(species)
+        # Derive phase from species suffix (_gas -> atm, _metal -> metal, else silicate)
+        phase = 'atm' if species.endswith('_gas') else 'metal' if species.endswith('_metal') else 'silicate'
         weight = weights.get(species, 1.0) if weights else 1.0
         if weight == 0.0:
             continue
@@ -144,11 +120,6 @@ def weighted_sum(df, weights):
     return total
 
 
-def weights_for_columns(mu, names, df):
-    """Return atomic weight entries for columns that exist in the dataframe."""
-    return {name: mu.get(name, 0.0) for name in names if name in df.columns}
-
-
 # ---------------------------------------------------------------------------
 # Mass Calculations
 # ---------------------------------------------------------------------------
@@ -157,24 +128,77 @@ def mass_arrays(df_source: pd.DataFrame, mu: dict):
     """Return mass-related arrays (moles and grams) for atmosphere, silicate, and metal.
 
     This helper is used by plotting routines to avoid repeating mass bookkeeping.
+    NaN/inf values in gram arrays are replaced with 0 (e.g. when HHe=0 the solver
+    can return NaN for Moles_atm or gas species due to 0/0 in equilibrium).
     """
     M_atm = df_source["Moles_atm"].to_numpy() if "Moles_atm" in df_source.columns else np.zeros(len(df_source))
     M_sil = df_source["Moles_silicate"].to_numpy() if "Moles_silicate" in df_source.columns else np.zeros(len(df_source))
     M_met = df_source["Moles_metal"].to_numpy() if "Moles_metal" in df_source.columns else np.zeros(len(df_source))
 
-    gas_weights = weights_for_columns(mu, GAS_COLUMNS, df_source)
-    silicate_weights = weights_for_columns(mu, SILICATE_COLUMNS, df_source)
-    metal_weights = weights_for_columns(mu, METAL_COLUMNS, df_source)
+    gas_weights = {name: mu.get(name, 0.0) for name in GAS_COLUMNS if name in df_source.columns}
+    silicate_weights = {name: mu.get(name, 0.0) for name in SILICATE_COLUMNS if name in df_source.columns}
+    metal_weights = {name: mu.get(name, 0.0) for name in METAL_COLUMNS if name in df_source.columns}
 
     grams_per_mole_atm = weighted_sum(df_source, gas_weights)
     grams_per_mole_silicate = weighted_sum(df_source, silicate_weights)
     grams_per_mole_metal = weighted_sum(df_source, metal_weights)
 
-    grams_atm = M_atm * grams_per_mole_atm
-    grams_silicate = M_sil * grams_per_mole_silicate
-    grams_metal = M_met * grams_per_mole_metal
+    # Replace NaN/inf with 0 so downstream ratios remain valid
+    grams_atm = np.nan_to_num(np.asarray(M_atm * grams_per_mole_atm, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    grams_silicate = np.nan_to_num(np.asarray(M_sil * grams_per_mole_silicate, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    grams_metal = np.nan_to_num(np.asarray(M_met * grams_per_mole_metal, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
     total_mass = grams_atm + grams_silicate + grams_metal
     return M_atm, M_sil, M_met, grams_atm, grams_silicate, grams_metal, total_mass
+
+
+def compute_phase_mole_fractions(df, axis_key):
+    """Compute phase mole fractions sorted by the given axis key.
+
+    Returns (x_vals, frac_atm, frac_silicate, frac_metal) where each fraction
+    is the phase's moles divided by total moles, sorted by x_vals.
+    Returns None if the data is empty or lacks required columns.
+    """
+    if df is None or df.empty:
+        return None
+
+    phase_cols = ['Moles_atm', 'Moles_silicate', 'Moles_metal']
+    if not set(phase_cols) <= set(df.columns):
+        return None
+    phase_data = df[phase_cols]
+    # Drop rows where any phase moles column is NaN
+    valid_mask = phase_data.notna().all(axis=1).to_numpy()
+    if not np.any(valid_mask):
+        return None
+    phase_df = df.loc[valid_mask].reset_index(drop=True)
+
+    from .plotting_helpers import axis_series
+    x_vals = axis_series(phase_df, axis_key)
+    if len(x_vals) == 0:
+        x_vals = np.arange(len(phase_df))
+
+    M_atm = phase_df['Moles_atm'].to_numpy(dtype=float)
+    M_sil = phase_df['Moles_silicate'].to_numpy(dtype=float)
+    M_met = phase_df['Moles_metal'].to_numpy(dtype=float)
+    total_moles = M_atm + M_sil + M_met
+
+    # Filter out rows where total moles is zero or NaN (avoids NaN artifacts in stackplot)
+    finite_mask = np.isfinite(total_moles) & (total_moles > 0)
+    if not np.any(finite_mask):
+        return None
+    x_vals = np.asarray(x_vals)[finite_mask]
+    M_atm = M_atm[finite_mask]
+    M_sil = M_sil[finite_mask]
+    M_met = M_met[finite_mask]
+    total_moles = total_moles[finite_mask]
+
+    # Sort by x values
+    order = np.argsort(x_vals)
+    x_vals = x_vals[order]
+    frac_atm = (M_atm / total_moles)[order]
+    frac_sil = (M_sil / total_moles)[order]
+    frac_met = (M_met / total_moles)[order]
+
+    return (x_vals, frac_atm, frac_sil, frac_met)
 
 
 def compute_phase_mass_fractions(df, axis_key):
@@ -188,13 +212,8 @@ def compute_phase_mass_fractions(df, axis_key):
         return None
 
     mu = load_atomic_weights()
+    # NaN/inf handling is done inside mass_arrays
     _, _, _, grams_atm, grams_silicate, grams_metal, total_mass = mass_arrays(df, mu)
-
-    # Convert to numpy and handle NaN (e.g., when HHe=0 solver may return NaN)
-    grams_atm = np.nan_to_num(np.asarray(grams_atm, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
-    grams_silicate = np.nan_to_num(np.asarray(grams_silicate, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
-    grams_metal = np.nan_to_num(np.asarray(grams_metal, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
-    total_mass = grams_atm + grams_silicate + grams_metal
 
     if not np.any(total_mass > 0):
         return None
@@ -237,6 +256,67 @@ def compute_phase_mass_fractions(df, axis_key):
 # Data Filtering & Preparation
 # ---------------------------------------------------------------------------
 
+def compute_element_weight_fractions(df, element_cols, axis_key):
+    """Compute element weight fractions sorted by the given axis key.
+
+    Converts element mole columns (nSi, nFe, ...) to mass fractions using
+    atomic weights, normalizes so rows sum to 1.
+
+    Returns (x_vals, wt_frac, labels) where wt_frac is a 2D array
+    (n_points x n_elements) sorted by descending mean wt%, and labels are
+    the bare element names in the same order.  Returns None if data is empty.
+    """
+    if df is None or df.empty:
+        return None
+
+    mu = load_atomic_weights()
+    element_data = df[element_cols]
+    valid_mask = element_data.notna().all(axis=1).to_numpy()
+    if not np.any(valid_mask):
+        return None
+    elem_df = df.loc[valid_mask].reset_index(drop=True)
+
+    from .plotting_helpers import axis_series
+    x_vals = axis_series(elem_df, axis_key)
+    if len(x_vals) == 0:
+        return None
+
+    # Convert moles to mass using atomic weights from Molecular_Weight.dat.
+    # Bare elements appear as {element}_metal or {element}_gas; for diatomic-only
+    # entries like N (only N2_gas exists) we derive the atomic weight as MW/2.
+    elem_matrix = elem_df[element_cols].to_numpy(dtype=float)
+    mass_matrix = np.zeros_like(elem_matrix)
+    for i, col in enumerate(element_cols):
+        element = col[1:]  # strip 'n' prefix (e.g., 'nSi' -> 'Si')
+        aw = mu.get(f"{element}_metal") or mu.get(f"{element}_gas")
+        if aw is None:
+            diatomic_mw = mu.get(f"{element}2_gas")
+            if diatomic_mw is not None:
+                aw = diatomic_mw / 2.0
+        if aw is None:
+            raise ValueError(f"No atomic weight found for element '{element}' in Molecular_Weight.dat")
+        mass_matrix[:, i] = elem_matrix[:, i] * aw
+
+    # Normalize to wt% (sum to 1)
+    totals = mass_matrix.sum(axis=1, keepdims=True)
+    totals[totals == 0] = 1.0
+    wt_frac = mass_matrix / totals
+
+    # Sort by average wt% (biggest first = descending order)
+    avg_wt = wt_frac.mean(axis=0)
+    sort_idx = np.argsort(-avg_wt)
+    sorted_frac = wt_frac[:, sort_idx]
+    sorted_labels = [element_cols[i][1:] for i in sort_idx]  # strip 'n' prefix for labels
+
+    # Sort rows by x values
+    x_vals = np.asarray(x_vals)
+    order = np.argsort(x_vals)
+    x_vals = x_vals[order]
+    sorted_frac = sorted_frac[order]
+
+    return (x_vals, sorted_frac, sorted_labels)
+
+
 def prepare_phase_fractions(df, columns, axis_key):
     """Return sorted x values, mass fractions, and labels for plotting.
     
@@ -249,7 +329,7 @@ def prepare_phase_fractions(df, columns, axis_key):
 
     phase_df = df.reindex(columns=columns, fill_value=0.0).astype(float).fillna(0.0)
     mu = load_atomic_weights()
-    weights = weights_for_columns(mu, columns, phase_df)
+    weights = {name: mu.get(name, 0.0) for name in columns if name in phase_df.columns}
     missing_weights = [col for col in columns if col not in mu]
     if missing_weights:
         raise ValueError(f"Missing molar masses for: {', '.join(missing_weights)}")
@@ -284,12 +364,48 @@ def prepare_phase_fractions(df, columns, axis_key):
     fractions = weighted_df.to_numpy() / total_safe[:, None]
     fractions = np.nan_to_num(fractions, nan=0.0, posinf=0.0, neginf=0.0)
 
-    # Strip phase suffixes (_metal, _silicate, _gas) to get human-readable labels
-    labels = [
-        next((col[:-len(s)] for s in ("_metal", "_silicate", "_gas") if col.endswith(s)), col)
-        for col in columns
-    ]
+    # Convert column names to LaTeX-formatted labels (e.g., H2O_gas -> H$_2$O)
+    from .plot_constants import format_species_label
+    labels = [format_species_label(col) for col in columns]
     return x_vals, fractions, labels
+
+
+def prepare_mole_fractions(df, columns, axis_key):
+    """Return sorted x values, raw mole fractions from results.dat, and labels.
+
+    Unlike prepare_phase_fractions (which mass-weights and normalizes), this
+    returns the raw mole-fraction columns directly from the dataframe.
+    Returns (x_vals, mole_fractions, labels) or None if no data.
+    """
+    if df is None or df.empty:
+        return None
+
+    phase_df = df.reindex(columns=columns, fill_value=0.0).astype(float).fillna(0.0)
+    if phase_df.sum().sum() == 0:
+        return None
+
+    from .plotting_helpers import axis_series
+    x_vals = axis_series(df, axis_key)
+    if len(x_vals) == 0:
+        x_vals = np.arange(len(df))
+
+    valid_mask = np.isfinite(x_vals)
+    if not np.any(valid_mask):
+        return None
+
+    x_vals = np.asarray(x_vals)[valid_mask]
+    phase_df = phase_df.loc[valid_mask].reset_index(drop=True)
+
+    order = np.argsort(x_vals)
+    x_vals = x_vals[order]
+    phase_df = phase_df.iloc[order].reset_index(drop=True)
+
+    # Raw mole fractions directly from results.dat, no normalization applied
+    mole_fractions = phase_df.to_numpy()
+
+    from .plot_constants import format_species_label
+    labels = [format_species_label(col) for col in columns]
+    return x_vals, mole_fractions, labels
 
 
 def compute_and_filter(df, series_fn, column_name, required_cols, label):
@@ -349,12 +465,50 @@ def axis_dataframe(df_source: pd.DataFrame, axis_key: str) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Atmospheric Derived Quantities
+# ---------------------------------------------------------------------------
+
+def compute_atm_co_ratio(df):
+    """Return the atmospheric C/O mole ratio.
+
+    Uses the pre-computed ``upperCO`` column from results.dat if available
+    (matching get_Results.py: C_atm = CH4 + CO2 + CO, O_atm = CO + 2*CO2 + 2*O2 + H2O,
+    deliberately excluding SiO which condenses high up and SO2).
+    Falls back to computing from individual gas columns if ``upperCO`` is missing.
+    """
+    if "upperCO" in df.columns:
+        return df["upperCO"].to_numpy(dtype=float)
+
+    # Fallback: compute from species columns (matches get_Results.py formula)
+    n = len(df)
+    c_atm = np.zeros(n, dtype=float)
+    for col in ("CH4_gas", "CO2_gas", "CO_gas"):
+        if col in df.columns:
+            c_atm += df[col].to_numpy(dtype=float)
+
+    o_atm = np.zeros(n, dtype=float)
+    if "CO_gas" in df.columns:
+        o_atm += df["CO_gas"].to_numpy(dtype=float)
+    if "CO2_gas" in df.columns:
+        o_atm += 2.0 * df["CO2_gas"].to_numpy(dtype=float)
+    if "O2_gas" in df.columns:
+        o_atm += 2.0 * df["O2_gas"].to_numpy(dtype=float)
+    if "H2O_gas" in df.columns:
+        o_atm += df["H2O_gas"].to_numpy(dtype=float)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        co_ratio = np.where(o_atm > 0, c_atm / o_atm, np.nan)
+    return co_ratio
+
+
+# ---------------------------------------------------------------------------
 # Sulfur Phase Calculations
 # ---------------------------------------------------------------------------
 
 def sulfur_phase_mole_fractions(df):
     """Return sulfur mole fractions in each phase as a dict {phase: array}."""
-    phase_moles = {phase: df[col].to_numpy(dtype=float) if col in df.columns else 1.0
+    # Default to zeros (not 1.0) so missing phases contribute nothing
+    phase_moles = {phase: df[col].to_numpy(dtype=float) if col in df.columns else np.zeros(len(df))
                    for phase, col in PHASE_MOLES_COLUMNS.items()}
     moles = accumulate_element_by_phase(df, "S", phase_moles=phase_moles)
     total = sum(moles[phase] for phase in PHASE_ORDER)
@@ -362,24 +516,3 @@ def sulfur_phase_mole_fractions(df):
     return {phase: moles[phase] / total for phase in PHASE_ORDER}
 
 
-def sulfur_phase_mass_fractions(df):
-    """Return sulfur mass fractions in each phase as a dict {phase: array}.
-
-    Mass fractions weight each sulfur-bearing species by its molecular weight.
-    """
-    phase_moles = {phase: df[col].to_numpy(dtype=float) if col in df.columns else 1.0
-                   for phase, col in PHASE_MOLES_COLUMNS.items()}
-    mass = accumulate_element_by_phase(df, "S", weights=SULFUR_SPECIES_MW, phase_moles=phase_moles)
-    total = sum(mass[phase] for phase in PHASE_ORDER)
-    total = np.where(total == 0, np.nan, total)
-    return {phase: mass[phase] / total for phase in PHASE_ORDER}
-
-
-def sulfur_phase_count_fractions(df):
-    """Return sulfur count-based fractions in each phase as a dict {phase: array}."""
-    if len(df) == 0:
-        return {phase: np.array([], dtype=float) for phase in PHASE_ORDER}
-    counts = accumulate_element_by_phase(df, "S")
-    total = sum(counts[phase] for phase in PHASE_ORDER)
-    total = np.where(total == 0, np.nan, total)
-    return {phase: counts[phase] / total for phase in PHASE_ORDER}

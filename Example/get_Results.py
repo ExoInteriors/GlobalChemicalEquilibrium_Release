@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from src.constants import repo_root
+from tools.constants import repo_root
 
 def get_results(path=None):
 	if path is None:
@@ -109,8 +109,25 @@ def get_results(path=None):
 	# -----------------------------------------------------------------
 	summary_file = "%s/summary_chem_input_GEC.csv" % path
 	df_summary = pd.read_csv(summary_file)
+
+	# -----------------------------------------------------------------
+	# read results file
+	# -----------------------------------------------------------------
+	df_result = pd.read_csv('%s/min.dat' % path, sep=r"\s+")
+	df_result.columns = df_result.columns.str.strip('#').str.strip()
+
+	# Filter both dataframes by the same success mask so rows stay aligned.
+	# findMin.py writes NaN placeholder rows for failed cases, so df_result
+	# has one row per case (matching df_summary before filtering).
 	if 'status' in df_summary.columns:
-		df_summary = df_summary[df_summary['status'] == 'success'].reset_index(drop=True)
+		success_mask = (df_summary['status'] == 'success').values
+		# Only apply if row counts match (both have one row per case)
+		if len(success_mask) == len(df_result):
+			df_summary = df_summary[success_mask].reset_index(drop=True)
+			df_result = df_result[success_mask].reset_index(drop=True)
+		else:
+			print(f"Warning: summary ({len(df_summary)}) and min.dat ({len(df_result)}) row counts differ; filtering summary only")
+			df_summary = df_summary[success_mask].reset_index(drop=True)
 
 	M = df_summary["iPlanetmass in Mearth"].to_numpy()
 	T_AMOI = df_summary["iTsurf in K"].to_numpy()
@@ -119,19 +136,11 @@ def get_results(path=None):
 	H_He = df_summary["iHHe mass fraction"].to_numpy()
 	Mg_Si = df_summary["iMgSi molar ratio"].to_numpy()
 	Fe_Si = df_summary["iFeSi molar ratio"].to_numpy()
-	if "itarSH_ratio" not in df_summary.columns:
-		raise KeyError("Summary file must contain 'itarSH_ratio'.")
-	itarSH = df_summary["itarSH_ratio"].to_numpy()
-	deltaT  = df_summary["ideltaT in K"].to_numpy()
-	T_SME = np.asarray(df_summary.get("iT_SME in K", T_AMOI + deltaT))
+	deltaT = np.asarray(df_summary.get("ideltaT in K", np.full_like(M, 500.0)))
+	T_SME = np.asarray(df_summary.get("iT_SME in K", T_AMOI + deltaT))  # T_AMOI = T_SME + deltaT
 	Pstd = np.asarray(df_summary.get("Pstd", np.ones_like(M)))
 	P_SME = np.asarray(df_summary.get("P_SME", np.zeros_like(M)))
-
-	# -----------------------------------------------------------------
-	# read results file
-	# -----------------------------------------------------------------
-	df_result = pd.read_csv('%s/min.dat' % path, sep=r"\s+")
-	df_result.columns = df_result.columns.str.strip('#').str.strip()
+	itarSH = np.asarray(df_summary.get("itarSH_ratio", np.zeros_like(M)))
 	unnamed_cols = [col for col in df_result.columns if col.startswith("Unnamed")]
 	if unnamed_cols:
 		print(f"Warning: dropping unnamed columns from min.dat: {', '.join(unnamed_cols)}")
@@ -174,10 +183,11 @@ def get_results(path=None):
 
 	S = min(len(df_result), len(np.atleast_1d(M)))
 	if S < len(df_result) or S < len(np.atleast_1d(M)):
-		print(f"Warning: length mismatch between results ({len(df_result)}) and summary ({len(np.atleast_1d(M))}); truncating to {S}")
+		print(f"ERROR: row count mismatch — min.dat has {len(df_result)} rows but summary has {len(np.atleast_1d(M))}. "
+			  f"Results may be misaligned! Truncating to {S} rows.")
 		df_result = df_result.iloc[:S].reset_index(drop=True)
 		M = M[:S]; T_AMOI = T_AMOI[:S]; C_O = C_O[:S]; fWater = fWater[:S]; H_He = H_He[:S]; Mg_Si = Mg_Si[:S]; Fe_Si = Fe_Si[:S]; deltaT = deltaT[:S]; T_SME = T_SME[:S]
-		itarSH = itarSH[:S]
+		Pstd = Pstd[:S]; P_SME = P_SME[:S]; itarSH = itarSH[:S]
 	if chi2_series is not None:
 		chi2_series = chi2_series[:S]
 
@@ -333,7 +343,7 @@ def get_results(path=None):
 		print("%12.10g " %  FeO_silicate_massfrac[i], end ="", file=f)
 		print("%12.10g " %  FeSiO3_silicate_massfrac[i], end ="", file=f)
 		print("%12.10g " %  H2_silicate_massfrac[i], end ="", file=f)
-		print("%12.10g " %  H2_silicate_massfrac[i], end ="", file=f)
+		print("%12.10g " %  H2_gas_massfrac[i], end ="", file=f)
 
 		print("", file = f)
 

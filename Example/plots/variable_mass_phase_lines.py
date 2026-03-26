@@ -15,16 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from Example.plots.helpers.data_processing_helpers import compute_and_filter, read_results, \
+from .helpers.data_processing_helpers import compute_and_filter, read_results, \
     sulfur_phase_mole_fractions
-from Example.plots.helpers.plot_constants import DEFAULT_LINE_STYLES, PHASE_COLORS, PHASE_ORDER
-from Example.plots.helpers.plotting_helpers import AXIS_CONFIG, EPSILON, SLICE_CONFIG, \
-    choose_values, get_config_values, get_delta_iw_series, get_log10_fO2_series
+from .helpers.plot_constants import DEFAULT_LINE_STYLES, LATEX_PLOT, PHASE_COLORS, PHASE_LEGEND_LABEL, \
+    PHASE_ORDER, PLOT_RCPARAMS
+from .helpers.plotting_helpers import AXIS_CONFIG, EPSILON, SLICE_CONFIG, \
+    get_config_values, get_delta_iw_series, get_log10_fO2_series, set_axis_x_limits
 
-
-def _default_output_name(x_axis: str, slice_var: str) -> str:
-    """Generate a default output filename based on axis and slice variable."""
-    return f"{x_axis.lower()}_phase_fractions_by_{slice_var.lower()}.png"
+plt.rcParams.update(PLOT_RCPARAMS)
 
 
 def run_variable_mass_phase_lines(
@@ -60,19 +58,44 @@ def run_variable_mass_phase_lines(
         print("No data found; skipping phase fraction plot.")
         return
 
-    # Preprocess based on x-axis requirements (add computed columns)
+    # Preprocess: only compute derived columns when the x-axis needs them.
+    # For non-derived axes (HHe, P_GPa, Matm_Mplanet, etc.), just filter to
+    # rows where Moles_silicate > 0 so sulfur fractions are well-defined.
     if x_axis == "log10_fO2":
         required = {"T_SME", "P_SME", "FeO_silicate", "Fe_metal", "Moles_silicate", "Moles_metal"}
         subset = compute_and_filter(df, get_log10_fO2_series, "log10_fO2", required, "fO2")
-    else:
-        # Default preprocessing adds delta_IW column (needed for delta_IW axis and harmless for others)
+    elif x_axis == "delta_IW":
         required = {"T_SME", "FeO_silicate", "Fe_metal", "Moles_silicate", "Moles_metal"}
         subset = compute_and_filter(df, get_delta_iw_series, "delta_IW", required, "ΔIW")
+    else:
+        n_melt = df["Moles_silicate"].to_numpy(dtype=float) if "Moles_silicate" in df.columns else np.zeros(len(df))
+        valid = np.isfinite(n_melt) & (n_melt > 0)
+        if not np.any(valid):
+            raise ValueError("No rows with Moles_silicate > 0 found in the dataset.")
+        subset = df.loc[valid].reset_index(drop=True)
+
     fractions = sulfur_phase_mole_fractions(subset)
 
     # Get slice variable values and choose which ones to plot
     slice_series = get_config_values(subset, slice_config)
-    chosen_slices = choose_values(slice_series, slice_values, max_slices)
+    unique_vals = np.unique(np.asarray(slice_series, dtype=float))
+    unique_vals = unique_vals[np.isfinite(unique_vals)]
+    unique_vals.sort()
+    if slice_values:
+        chosen_slices = []
+        for v in slice_values:
+            matches = unique_vals[np.isclose(unique_vals, float(v), atol=1e-6, rtol=1e-6)]
+            if matches.size:
+                chosen_slices.append(float(matches[0]))
+        if not chosen_slices:
+            raise ValueError("None of the requested values were found in the data.")
+    else:
+        # Pick evenly spaced values across the range (not just the smallest)
+        if len(unique_vals) <= max_slices:
+            chosen_slices = unique_vals.tolist()
+        else:
+            indices = np.linspace(0, len(unique_vals) - 1, max_slices, dtype=int)
+            chosen_slices = unique_vals[indices].tolist()
     if not chosen_slices:
         raise ValueError(f"No {slice_var} values were selected for plotting.")
 
@@ -84,24 +107,15 @@ def run_variable_mass_phase_lines(
     if output is not None:
         output_path = output
     else:
-        default_name = _default_output_name(x_axis, slice_var)
-        output_path = results_dir / "plots" / x_axis / default_name
+        output_path = results_dir / "plots" / x_axis / f"{x_axis.lower()}_phase_fractions_by_{slice_var.lower()}.png"
 
     print(f"Using x-axis '{x_axis}' with label '{axis_config['label']}'")
     print(f"Slicing by '{slice_var}': {chosen_slices}")
-    plot_phase_lines(
-        x_values,
-        axis_config["label"],
-        fractions,
-        slice_series,
-        chosen_slices,
-        slice_config,
-        output_path,
-    )
+    _plot_phase_lines(x_values, axis_config["label"], fractions, slice_series, chosen_slices, slice_config, output_path)
     print(f"Figure saved to {output_path}")
 
 
-def plot_phase_lines(
+def _plot_phase_lines(
     x_values: np.ndarray,
     x_label: str,
     fractions: dict[str, np.ndarray],
@@ -124,7 +138,9 @@ def plot_phase_lines(
     slice_label = slice_config["label"]
     slice_format = slice_config["format"]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Square figure and axes box for P_GPa vs HHe phase-line plot (matches other square panels).
+    is_p_gpa_hhe = "p_gpa_phase_fractions_by_hhe" in output_path.stem
+    fig, ax = plt.subplots(figsize=(4, 4) if is_p_gpa_hhe else (4, 3.2))
     style_lookup = {
         val: DEFAULT_LINE_STYLES[idx % len(DEFAULT_LINE_STYLES)]
         for idx, val in enumerate(slice_values)
@@ -132,6 +148,7 @@ def plot_phase_lines(
     phase_handles: list[Line2D] = []
     slice_handles: list[Line2D] = []
     plotted_slices: set[float] = set()
+    all_plotted_x: list[float] = []
 
     for phase in PHASE_ORDER:
         color = PHASE_COLORS.get(phase, "#000000")
@@ -141,7 +158,7 @@ def plot_phase_lines(
             style = style_lookup[val]
             # Filter to rows matching this slice value with finite x/y values
             mask = (
-                np.isclose(slice_series, val, atol=EPSILON, rtol=EPSILON)
+                np.isclose(slice_series, val, atol=1e-6, rtol=1e-6)
                 & np.isfinite(y_vals)
                 & np.isfinite(x_values)
             )
@@ -155,10 +172,11 @@ def plot_phase_lines(
             ax.plot(
                 x,
                 y,
-                label=f"{phase.capitalize()} ({slice_format(val)})",
+                label=f"{PHASE_LEGEND_LABEL[phase]} ({slice_format(val)})",
                 color=color,
                 linestyle=style,
             )
+            all_plotted_x.extend(x.tolist())
             plotted_phase = True
             if val not in plotted_slices:
                 slice_handles.append(
@@ -172,21 +190,34 @@ def plot_phase_lines(
                 )
                 plotted_slices.add(val)
         if plotted_phase:
-            phase_handles.append(Line2D([0], [0], color=color, label=phase.capitalize()))
+            phase_handles.append(Line2D([0], [0], color=color, label=PHASE_LEGEND_LABEL[phase]))
 
     ax.set_yscale("log")
-    ax.set_ylim(EPSILON, 2.0)
-    finite_x = x_values[np.isfinite(x_values)]
-    if finite_x.size:
-        ax.set_xlim(finite_x.min(), finite_x.max())
+    # Use a deeper lower limit for the specific P_GPa vs HHe plot, otherwise default.
+    if "p_gpa_phase_fractions_by_hhe" in output_path.stem:
+        ax.set_ylim(1e-9, 2.0)  # 10e-10
+    else:
+        ax.set_ylim(EPSILON, 2.0)
+    # Set x-axis limits and ticks from actually-plotted data only
+    if all_plotted_x:
+        x_arr = np.array(all_plotted_x, dtype=float)
+        set_axis_x_limits(ax, x_arr)
+        # Special-case the HHe/pressure experiment: for runs with P_SME = {0, 10, 50} GPa
+        # (i.e. x-axis values {0, 10, 50}), annotate ticks at 10, 20, 30, 40, 50 GPa
+        # for clearer comparison across the pressure range.
+        unique_x = np.unique(np.round(x_arr, decimals=6))
+        if unique_x.size == 3 and np.allclose(unique_x, [0.0, 10.0, 50.0], rtol=0, atol=1e-3):
+            ax.set_xticks([10, 20, 30, 40, 50])
     ax.set_xlabel(x_label)
-    ax.set_ylabel("Sulfur phase fraction")
+    ax.set_ylabel(LATEX_PLOT["sulfur_phase_fraction"])
 
+    # Place the phase legend slightly below the top-right corner so it doesn't
+    # crowd the plot frame (affects both HHe vs P_SME and P_GPa vs HHe plots).
     phase_legend = ax.legend(
         handles=phase_handles,
-        title="Phase",
         fontsize="x-small",
         loc="upper right",
+        bbox_to_anchor=(1.0, 0.97),
     )
     ax.add_artist(phase_legend)
     if slice_handles:
@@ -194,12 +225,12 @@ def plot_phase_lines(
             handles=slice_handles,
             title=slice_label,
             fontsize="x-small",
+            title_fontsize="x-small",
             loc="lower left",
         )
-
-    ax.set_title(f"Sulfur phase fractions vs {x_label}")
+    if is_p_gpa_hhe:
+        ax.set_box_aspect(1)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
-

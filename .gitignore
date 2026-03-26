@@ -4,6 +4,9 @@
 **/grad_ctot.cpp
 **/calculate_P.cpp
 
+aaron_data/**
+analys
+
 # Generated Gibbs.dat files that aren't the original Standard_Version/Gibbs.dat
 **/Gibbs.dat
 !Standard_Version/Gibbs.dat
@@ -26,6 +29,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Matplotlib usetex / pdfLaTeX intermediate cache (MPLCONFIGDIR, e.g. .mplconfig)
+**/.mplconfig/tex.cache/
+**/.mplconfig/**
+.mplconfig/fontlist-v390.json
 
 # Root-level generated input/output folders (versioned runs)
 results*/**

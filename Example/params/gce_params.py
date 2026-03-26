@@ -59,7 +59,8 @@ class GCEParams:
         }
     )
 
-    def select_condritic(self, sulfur_enabled: bool) -> Dict[str, float]:
+    def select_condritic(self, sulfur_enabled: bool, nitrogen_enabled: bool = False) -> Dict[str, float]:
+        """Select and return chondritic composition, zeroing S/N if their versions are disabled."""
         if self.UseCondriticComp == "mass fraction":
             if self.UseCondriticPreset == "allegre":
                 cond = self.condritic_mass_allegre
@@ -74,8 +75,11 @@ class GCEParams:
         else:
             raise ValueError("UseCondriticComp must be 'mass fraction' or 'molar fraction'")
 
-        if not sulfur_enabled:
+        if not sulfur_enabled or not nitrogen_enabled:
             cond = cond.copy()
-            cond["S"] = 0.0
+            if not sulfur_enabled:
+                cond["S"] = 0.0
+            if not nitrogen_enabled:
+                cond["N"] = 0.0
 
         return cond
