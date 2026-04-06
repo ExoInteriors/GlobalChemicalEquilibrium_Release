@@ -206,3 +206,19 @@ The `sulfur nitrogen version` adds the following reactions to the `standard vers
 	\end{aligned}
 
 See Werlen et al. (2026, in review).
+
+.. _Young_2023_Version:
+
+The Young 2023 Version
+========================
+
+The `Young 2023 version` is a version of the code similar to :cite:p:`Young+2023`.
+In particular, it removes SiH4 from the chemical network and removes the pressure dependence for reaction R14. The equilibrium function f14 hence becomes:
+
+.. math::
+	\begin{equation}
+	f_{15} = \ln x_{\text{H}_{2,\text{silicate}}} - \ln x_{\text{H}_{2,\text{gas}}} + \frac{\Delta \hat G_{15}^\circ}{RT} - \ln \left( \frac{10^4}{P^\circ} \right)
+	\end{equation}
+
+More information regarding the hydrogen solubility treatment in the code can be found in Grimm et al. (2026, in prep.).
+Since the thermodynamic data used by our code and :cite:p:`Young+2023` may differ slightly, results from this version may also differ from the published paper.
