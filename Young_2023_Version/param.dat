@@ -1,0 +1,14 @@
+# General parameters
+Gibbs energy file = Gibbs_Young_Version.py
+Initial conditions file = -
+Output file = output.dat
+outputInterval = 10000
+Nwalker = 100
+nSteps = 150000
+nIterations = 1
+nBestSolutions = 1
+method = 2
+
+# Adam solver parameters
+eta = 0.4
+lambda_reg = 0.0001
