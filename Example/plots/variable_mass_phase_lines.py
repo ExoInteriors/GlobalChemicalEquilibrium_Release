@@ -1,11 +1,4 @@
-"""Plot sulfur phase fractions vs a chosen x-axis with configurable line-style slices.
-
-This generalises the behaviour of earlier HHe/pressure phase-line scripts so that
-both the x-axis and the slice variable can be configured. For example:
-  - x_axis="HHe", slice_var="Planetmass" — sulfur fractions vs H/He, sliced by planet mass
-  - x_axis="HHe", slice_var="P_SME" — sulfur fractions vs H/He, sliced by SME pressure
-  - x_axis="delta_IW", slice_var="Planetmass" — sulfur fractions vs ΔIW, sliced by planet mass
-"""
+"""Plot sulfur phase fractions vs a given x-axis."""
 
 from __future__ import annotations
 
@@ -15,35 +8,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from .helpers.data_processing_helpers import compute_and_filter, read_results, \
-    sulfur_phase_mole_fractions
-from .helpers.plot_constants import DEFAULT_LINE_STYLES, LATEX_PLOT, PHASE_COLORS, PHASE_LEGEND_LABEL, \
+from .helpers.plot_constants import DEFAULT_LINE_STYLES, EPSILON, LATEX_PLOT, PHASE_COLORS, PHASE_LEGEND_LABEL, \
     PHASE_ORDER, PLOT_RCPARAMS
-from .helpers.plotting_helpers import AXIS_CONFIG, EPSILON, SLICE_CONFIG, \
-    get_config_values, get_delta_iw_series, get_log10_fO2_series, set_axis_x_limits
+from .helpers.plotting_helpers import read_results, set_axis_x_limits
+from .helpers.science_postprocessing import AXIS_CONFIG, SLICE_CONFIG, compute_and_filter, \
+    get_config_values, get_delta_iw_series, get_log10_fO2_series, sulfur_phase_mole_fractions
 
 plt.rcParams.update(PLOT_RCPARAMS)
 
 
-def run_variable_mass_phase_lines(
-    results_dir: Path,
-    *,
-    x_axis: str = "HHe",
-    slice_var: str = "Planetmass",
-    slice_values: list[float] | None = None,
-    max_slices: int = 3,
-    output: Path | None = None,
-) -> None:
-    """Run the phase-line plotting for a given results directory.
-
-    Args:
-        results_dir: Path to directory containing results.dat file.
-        x_axis: Which variable to use for the x-axis (see AXIS_CONFIG keys).
-        slice_var: Which variable to slice by (see SLICE_CONFIG keys).
-        slice_values: Specific values to plot; if None, auto-selects up to max_slices.
-        max_slices: Maximum number of slice lines if slice_values is None.
-        output: Output file path; defaults to results_dir/plots/<x_axis>/<filename>.
-    """
+def run_variable_mass_phase_lines(results_dir: Path, x_axis: str = "HHe", slice_var: str = "Planetmass",
+                                    slice_values = None, max_slices: int = 3, output = None) -> None:
+    """Run the phase-line plotting for a given results directory."""
     if x_axis not in AXIS_CONFIG:
         raise ValueError(f"Unsupported x-axis '{x_axis}'. Valid options: {sorted(AXIS_CONFIG)}")
     if slice_var not in SLICE_CONFIG:
@@ -53,7 +29,7 @@ def run_variable_mass_phase_lines(
     slice_config = SLICE_CONFIG[slice_var]
 
     print(f"Loading results from {results_dir}")
-    df = read_results(results_dir)
+    df = read_results(results_dir, filter_bad_chi2=True)
     if df.empty:
         print("No data found; skipping phase fraction plot.")
         return
@@ -115,26 +91,8 @@ def run_variable_mass_phase_lines(
     print(f"Figure saved to {output_path}")
 
 
-def _plot_phase_lines(
-    x_values: np.ndarray,
-    x_label: str,
-    fractions: dict[str, np.ndarray],
-    slice_series: np.ndarray,
-    slice_values: list[float],
-    slice_config: dict,
-    output_path: Path,
-) -> None:
-    """Plot sulfur phase fractions vs an arbitrary x-axis for selected slice values.
-
-    Args:
-        x_values: Array of x-axis values.
-        x_label: Label for the x-axis.
-        fractions: Dict mapping phase name to sulfur fraction array.
-        slice_series: Array of slice variable values (same length as x_values).
-        slice_values: List of slice values to plot (each gets a different line style).
-        slice_config: Config dict for the slice variable (must have "label" and "format" keys).
-        output_path: Where to save the figure.
-    """
+def _plot_phase_lines(x_values, x_label, fractions, slice_series, slice_values, slice_config, output_path):
+    """Plot sulfur phase fractions vs a specific x-axis (ie HHe, water)."""
     slice_label = slice_config["label"]
     slice_format = slice_config["format"]
 

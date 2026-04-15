@@ -1,26 +1,58 @@
-"""Plot species molar fractions across chosen axes."""
-
-import os
+"""Full-equilibrium plotting for atmosphere, silicate, metal, and phase figures. 
+This is where main plots for partial melt are generated"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Example.plots.helpers.data_processing_helpers import compute_phase_mass_fractions, prepare_phase_fractions
+from Example.plots.helpers.science_postprocessing import (
+    compute_phase_mass_fractions,
+    detect_matm_dual_axis,
+    prepare_mole_fractions,
+    prepare_phase_fractions,
+)
 from tools.constants import EARTH_CORE_FORMATION_DELTA_IW_MIN, EARTH_CORE_FORMATION_DELTA_IW_MAX
-from Example.plots.helpers.plot_constants import GAS_COLUMNS, GAS_LINE_ORDER, LINE_YMIN_ATMOS_SILICATE, LINE_YMIN_METAL, \
-                                    METAL_COLUMNS, METAL_LINE_ORDER, PHASE_COLORS, PLOT_RCPARAMS, SILICATE_COLUMNS, \
-                                    SILICATE_LINE_ORDER, SULFUR_SPECIES
-from Example.plots.helpers.plotting_helpers import EPSILON, axis_label, axis_panel_subsets, axis_series, colormap_palette, \
-                                    positive_bounds, set_axis_x_limits, add_dual_x_axis, get_matm_mplanet_series
+from Example.plots.helpers.plot_constants import EPSILON, GAS_COLUMNS, GAS_LINE_ORDER, LATEX_PLOT, \
+                                                METAL_COLUMNS,METAL_LINE_ORDER,PHASE_COLORS, PLOT_RCPARAMS, \
+                                                SILICATE_COLUMNS, SILICATE_LINE_ORDER, SULFUR_SPECIES_LABELS
+from Example.plots.helpers.plotting_helpers import add_dual_x_axis, axis_label, axis_panel_subsets, \
+                                                draw_panel_or_single_figure, make_panel_title, save_axis_figure, \
+                                                set_axis_x_limits, sort_by_mean_and_get_colors
 
 plt.rcParams.update(PLOT_RCPARAMS)
 
-LINE_STYLES = ["--", "-", "-.", ":"]
+def plot_species_molar_fractions_by_axis(df, path, axis_keys_list):
+    """Generate the full-equilibrium plots for partial melt."""
+    if df is None or df.empty:
+        return
+
+    axis_keys_list = axis_keys_list or ["index"]
+    phases = [
+        ("Metal", METAL_COLUMNS),
+        ("Silicate", SILICATE_COLUMNS),
+        ("Gas", GAS_COLUMNS),
+    ]
+
+    for axis_key in axis_keys_list:
+        panels = axis_panel_subsets(axis_key, df)
+        if panels:
+            _draw_stacked_species_figure(panels, phases, axis_key, path, is_multi_panel=True)
+            _draw_main_line_summary_figure(panels, axis_key, path, is_multi_panel=True)
+            _draw_atmosphere_mixing_ratio_figure(panels, axis_key, path, is_multi_panel=True)
+        else:
+            _draw_stacked_species_figure(df, phases, axis_key, path, is_multi_panel=False)
+            _draw_main_line_summary_figure(df, axis_key, path, is_multi_panel=False)
+            _draw_atmosphere_mixing_ratio_figure(df, axis_key, path, is_multi_panel=False)
 
 
-def _plot_phase(ax, subset, columns, phase_name, axis_key, panel_title=None, show_ylabel=True, legend_ncol=3):
-    """Draw a stacked species mole fraction panel across the chosen axis."""
+# ---------------------------------------------------------------------------
+# Shared Subplot Helpers
+# ---------------------------------------------------------------------------
+
+def _plot_stacked_species_panel(ax, subset, columns, phase_name, axis_key, panel_title=None, show_ylabel=True, legend_ncol=3):
+    """Draw one stacked-composition panel for metal, silicate, or atmosphere."""
     title = f"{phase_name} -- {panel_title}" if panel_title else phase_name
+    # Delta-IW plots get the same highlighted Earth-core-formation band used
+    # elsewhere in the plotting suite.
     if axis_key == "delta_IW":
         ax.axvspan(EARTH_CORE_FORMATION_DELTA_IW_MIN, EARTH_CORE_FORMATION_DELTA_IW_MAX, alpha=0.18, zorder=0)
     prepared = prepare_phase_fractions(subset, columns, axis_key)
@@ -53,9 +85,9 @@ def _plot_phase(ax, subset, columns, phase_name, axis_key, panel_title=None, sho
     return True
 
 
-def _plot_phase_lines(ax, subset, columns, phase_name, axis_key, panel_title=None,
+def _plot_species_line_panel(ax, subset, columns, phase_name, axis_key, panel_title=None,
                       show_ylabel=True, phase_label=None, is_bottom_row=False):
-    """Draw species mass fraction lines across the chosen axis (log y)."""
+    """Draw one log-line species panel for atmosphere, silicate, or metal."""
     display_name = phase_label or phase_name
     title = f"{display_name} -- {panel_title}" if panel_title else display_name
     if axis_key == "delta_IW":
@@ -75,8 +107,9 @@ def _plot_phase_lines(ax, subset, columns, phase_name, axis_key, panel_title=Non
     for idx, label in enumerate(sorted_labels):
         series = np.where(sorted_fractions[:, idx] <= 0, np.nan, sorted_fractions[:, idx])
         linewidth = 3.5 if label in SULFUR_SPECIES_LABELS else 2
-        ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth,
-                linestyle=LINE_STYLES[idx % len(LINE_STYLES)])
+        # Species identity is carried by color, not linestyle, which keeps these
+        # dense multi-species panels easier to scan.
+        ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth)
 
     ax.set_yscale("log")
     if is_bottom_row:
@@ -94,8 +127,8 @@ def _plot_phase_lines(ax, subset, columns, phase_name, axis_key, panel_title=Non
     return True
 
 
-def _plot_phase_mass_fractions(ax, subset, axis_key, panel_title=None, show_ylabel=True):
-    """Draw phase mass fraction lines across the chosen axis (log y)."""
+def _plot_bulk_phase_fraction_panel(ax, subset, axis_key, panel_title=None, show_ylabel=True):
+    """Draw the bulk phase-fraction panel for atmosphere, silicate, and metal."""
     title = f"{LATEX_PLOT['phase_mass_fraction']} -- {panel_title}" if panel_title else LATEX_PLOT["phase_mass_fraction"]
     if axis_key == "delta_IW":
         ax.axvspan(EARTH_CORE_FORMATION_DELTA_IW_MIN, EARTH_CORE_FORMATION_DELTA_IW_MAX, alpha=0.18, zorder=0)
@@ -124,42 +157,53 @@ def _plot_phase_mass_fractions(ax, subset, axis_key, panel_title=None, show_ylab
     return True
 
 
-def _draw_stacked_plots(df_or_panels, phases, axis_key, path, is_multi_panel):
-    """Draw stacked species mass fraction plots."""
-    if is_multi_panel:
-        panels = df_or_panels
-        nrows = len(panels)
-        fig, axes = plt.subplots(nrows, 3, figsize=(15, 5 * nrows), sharex=False, sharey=True)
-        axes = np.atleast_2d(axes)
+def _draw_stacked_species_figure(df_or_panels, phases, axis_key, path, is_multi_panel):
+    """Build the stacked-composition figure for metal, silicate, and atmosphere."""
+    def _multi_figure_fn(npanels):
+        fig, axes = plt.subplots(npanels, 3, figsize=(15, 5 * npanels), sharex=False, sharey=True)
+        return fig, np.atleast_2d(axes)
+
+    def _multi_draw_fn(fig, axes, panels, axis_key_local):
         for row_idx, panel in enumerate(panels):
-            value = panel["value"]
-            if axis_key == "HHe":
-                panel_title = "no accreted water" if value == 0 else f"accreted water = {value:.3g}"
-            elif axis_key == "Water":
-                panel_title = f"HHe = {value:.3g}"
-            else:
-                panel_title = str(value)
+            panel_title = make_panel_title(axis_key_local, panel["value"])
             for col_idx, (phase_name, columns) in enumerate(phases):
                 ax = axes[row_idx, col_idx]
-                ncol = 4 if col_idx > 0 else 3  # Silicate and Gas get 4 columns
-                if not _plot_phase(ax, panel["df"], columns, phase_name, axis_key,
-                                   panel_title=panel_title, show_ylabel=(col_idx == 0), legend_ncol=ncol):
+                ncol = 4 if col_idx > 0 else 3
+                if not _plot_stacked_species_panel(
+                    ax,
+                    panel["df"],
+                    columns,
+                    phase_name,
+                    axis_key_local,
+                    panel_title=panel_title,
+                    show_ylabel=(col_idx == 0),
+                    legend_ncol=ncol,
+                ):
                     ax.set_visible(False)
-    else:
+
+    def _single_figure_fn():
         fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True, sharey=True)
+        return fig, axes
+
+    def _single_draw_fn(fig, axes, data, axis_key_local):
         for col_idx, (ax, (phase_name, columns)) in enumerate(zip(axes, phases)):
-            ncol = 4 if col_idx > 0 else 3  # Silicate and Gas get 4 columns
-            _plot_phase(ax, df_or_panels, columns, phase_name, axis_key, show_ylabel=(col_idx == 0), legend_ncol=ncol)
+            ncol = 4 if col_idx > 0 else 3
+            _plot_stacked_species_panel(ax, data, columns, phase_name, axis_key_local, show_ylabel=(col_idx == 0), legend_ncol=ncol)
 
-    fig.tight_layout()
-    plot_dir = os.path.join(path, 'plots', axis_key)
-    os.makedirs(plot_dir, exist_ok=True)
-    fig.savefig(os.path.join(plot_dir, f"species_mass_fractions_{axis_key}.png"), bbox_inches="tight")
-    plt.close(fig)
+    draw_panel_or_single_figure(
+        df_or_panels,
+        axis_key,
+        path,
+        "species_mass_fractions",
+        multi_figure_fn=_multi_figure_fn,
+        multi_draw_fn=_multi_draw_fn,
+        single_figure_fn=_single_figure_fn,
+        single_draw_fn=_single_draw_fn,
+    )
 
 
-def _draw_line_plots(df_or_panels, axis_key, path, is_multi_panel):
-    """Draw species mass fraction line plots (log y scale)."""
+def _draw_main_line_summary_figure(df_or_panels, axis_key, path, is_multi_panel):
+    """Build the main 2x2 science-summary figure."""
     line_phases = [
         ("Gas", "Atmosphere", GAS_LINE_ORDER),
         ("Silicate", "Silicate", SILICATE_LINE_ORDER),
@@ -172,13 +216,7 @@ def _draw_line_plots(df_or_panels, axis_key, path, is_multi_panel):
         fig, axes = plt.subplots(nrows * 2, 2, figsize=(11, 11 * nrows), sharex=False, sharey=False)
         axes = np.atleast_2d(axes)
         for row_idx, panel in enumerate(panels):
-            value = panel["value"]
-            if axis_key == "HHe":
-                panel_title = "no accreted water" if value == 0 else f"accreted water = {value:.3g}"
-            elif axis_key == "Water":
-                panel_title = f"HHe = {value:.3g}"
-            else:
-                panel_title = str(value)
+            panel_title = make_panel_title(axis_key, panel["value"])
             base_row = row_idx * 2
             layout = [
                 (line_phases[0], axes[base_row, 0], False),      # Gas/Atmosphere (top)
@@ -186,14 +224,14 @@ def _draw_line_plots(df_or_panels, axis_key, path, is_multi_panel):
                 (line_phases[2], axes[base_row + 1, 0], True),   # Metal (bottom)
             ]
             for (phase_name, phase_label, columns), ax, is_bottom in layout:
-                if not _plot_phase_lines(ax, panel["df"], columns, phase_name, axis_key,
+                if not _plot_species_line_panel(ax, panel["df"], columns, phase_name, axis_key,
                                          panel_title=panel_title, show_ylabel=True, phase_label=phase_label,
                                          is_bottom_row=is_bottom):
                     ax.set_visible(False)
                 if not is_bottom:
                     ax.set_xlabel("")
                     ax.tick_params(axis="x", labelbottom=False)
-            if not _plot_phase_mass_fractions(axes[base_row + 1, 1], panel["df"], axis_key,
+            if not _plot_bulk_phase_fraction_panel(axes[base_row + 1, 1], panel["df"], axis_key,
                                               panel_title=panel_title, show_ylabel=True):
                 axes[base_row + 1, 1].set_visible(False)
     else:
@@ -211,7 +249,7 @@ def _draw_line_plots(df_or_panels, axis_key, path, is_multi_panel):
         plot_axis_key = dual_axis_info["bottom_axis_key"] if dual_axis_info else axis_key
 
         for (phase_name, phase_label, columns), ax, is_bottom in layout:
-            _plot_phase_lines(ax, df, columns, phase_name, plot_axis_key,
+            _plot_species_line_panel(ax, df, columns, phase_name, plot_axis_key,
                               show_ylabel=True, phase_label=phase_label, is_bottom_row=is_bottom)
             if not is_bottom:
                 ax.set_xlabel("")
@@ -224,21 +262,17 @@ def _draw_line_plots(df_or_panels, axis_key, path, is_multi_panel):
                     top_label = LATEX_PLOT["matm_over_mplanet"] if ax in (axes[0, 0], axes[0, 1]) else None
                     add_dual_x_axis(ax, dual_axis_info["bottom_vals"], dual_axis_info["matm_vals"], top_label=top_label)
 
-        _plot_phase_mass_fractions(axes[1, 1], df, plot_axis_key, show_ylabel=True)
+        _plot_bulk_phase_fraction_panel(axes[1, 1], df, plot_axis_key, show_ylabel=True)
         if dual_axis_info:
             axes[1, 1].set_xlabel(dual_axis_info["label"])
             # Only add Matm/Mplanet dual axis for H/He accretion (not water)
             if dual_axis_info["matm_vals"] is not None:
                 add_dual_x_axis(axes[1, 1], dual_axis_info["bottom_vals"], dual_axis_info["matm_vals"], top_label=None)
 
-    fig.tight_layout()
-    plot_dir = os.path.join(path, 'plots', axis_key)
-    os.makedirs(plot_dir, exist_ok=True)
-    fig.savefig(os.path.join(plot_dir, f"species_mass_fractions_lines_{axis_key}.png"), bbox_inches="tight")
-    plt.close(fig)
+    save_axis_figure(fig, path, axis_key, "species_mass_fractions_lines")
 
 
-def _plot_atmosphere_mixing_ratio(ax, subset, axis_key, panel_title=None):
+def _plot_atmosphere_mixing_ratio_panel(ax, subset, axis_key, panel_title=None):
     """Draw atmosphere mole fraction lines across the chosen axis (log y).
 
     Plots the raw gas mole fractions directly from results.dat without conversion,
@@ -266,8 +300,8 @@ def _plot_atmosphere_mixing_ratio(ax, subset, axis_key, panel_title=None):
     for idx, label in enumerate(sorted_labels):
         series = np.where(sorted_fractions[:, idx] <= 0, np.nan, sorted_fractions[:, idx])
         linewidth = 3.5 if label in SULFUR_SPECIES_LABELS else 2
-        ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth,
-                linestyle=LINE_STYLES[idx % len(LINE_STYLES)])
+        # Species identity is carried by color, not linestyle.
+        ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth)
 
     ax.set_yscale("log")
     ax.set_ylim(1e-16, 1e3)
@@ -280,53 +314,31 @@ def _plot_atmosphere_mixing_ratio(ax, subset, axis_key, panel_title=None):
     return True
 
 
-def _draw_atmosphere_mixing_ratio_plot(df_or_panels, axis_key, path, is_multi_panel):
-    """Draw atmosphere mixing ratio plot (single subplot)."""
-    if is_multi_panel:
-        panels = df_or_panels
-        nrows = len(panels)
-        fig, axes = plt.subplots(nrows, 1, figsize=(6, 6 * nrows), sharex=False)
-        if nrows == 1:
-            axes = [axes]
+def _draw_atmosphere_mixing_ratio_figure(df_or_panels, axis_key, path, is_multi_panel):
+    """Build the standalone atmosphere mixing-ratio figure."""
+    def _multi_figure_fn(npanels):
+        fig, axes = plt.subplots(npanels, 1, figsize=(6, 6 * npanels), sharex=False)
+        return fig, [axes] if npanels == 1 else axes
+
+    def _multi_draw_fn(fig, axes, panels, axis_key_local):
         for row_idx, panel in enumerate(panels):
-            value = panel["value"]
-            if axis_key == "HHe":
-                panel_title = "no accreted water" if value == 0 else f"accreted water = {value:.3g}"
-            elif axis_key == "Water":
-                panel_title = f"HHe = {value:.3g}"
-            else:
-                panel_title = str(value)
-            _plot_atmosphere_mixing_ratio(axes[row_idx], panel["df"], axis_key, panel_title=panel_title)
-    else:
+            panel_title = make_panel_title(axis_key_local, panel["value"])
+            _plot_atmosphere_mixing_ratio_panel(axes[row_idx], panel["df"], axis_key_local, panel_title=panel_title)
+
+    def _single_figure_fn():
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-        _plot_atmosphere_mixing_ratio(ax, df_or_panels, axis_key)
+        return fig, ax
 
-    fig.tight_layout()
-    plot_dir = os.path.join(path, 'plots', axis_key)
-    os.makedirs(plot_dir, exist_ok=True)
-    fig.savefig(os.path.join(plot_dir, f"atmosphere_mixing_ratio_{axis_key}.png"), bbox_inches="tight")
-    plt.close(fig)
+    def _single_draw_fn(fig, ax, data, axis_key_local):
+        _plot_atmosphere_mixing_ratio_panel(ax, data, axis_key_local)
 
-
-def plot_species_molar_fractions_by_axis(df, path, axis_keys_list):
-    """Plot stacked species mass fractions across one or more axes."""
-    if df is None or df.empty:
-        return
-
-    axis_keys_list = axis_keys_list or ["index"]
-    phases = [
-        ("Metal", METAL_COLUMNS),
-        ("Silicate", SILICATE_COLUMNS),
-        ("Gas", GAS_COLUMNS),
-    ]
-
-    for axis_key in axis_keys_list:
-        panels = axis_panel_subsets(axis_key, df)
-        if panels:
-            _draw_stacked_plots(panels, phases, axis_key, path, is_multi_panel=True)
-            _draw_line_plots(panels, axis_key, path, is_multi_panel=True)
-            _draw_atmosphere_mixing_ratio_plot(panels, axis_key, path, is_multi_panel=True)
-        else:
-            _draw_stacked_plots(df, phases, axis_key, path, is_multi_panel=False)
-            _draw_line_plots(df, axis_key, path, is_multi_panel=False)
-            _draw_atmosphere_mixing_ratio_plot(df, axis_key, path, is_multi_panel=False)
+    draw_panel_or_single_figure(
+        df_or_panels,
+        axis_key,
+        path,
+        "atmosphere_mixing_ratio",
+        multi_figure_fn=_multi_figure_fn,
+        multi_draw_fn=_multi_draw_fn,
+        single_figure_fn=_single_figure_fn,
+        single_draw_fn=_single_draw_fn,
+    )

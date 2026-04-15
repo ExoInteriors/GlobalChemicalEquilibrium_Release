@@ -332,13 +332,20 @@ def create(version, params=None, output_dir=None):
                                                 header = "#nSi nMg nO nFe nH nNa nC nS"
                                                 if nitrogen_enabled:
                                                     header += " nN"
-                                                header += " Pstd P_SME\n"
+                                                # Sulfur_Nitrogen_Version does not include P_SME as a solver parameter.
+                                                header += " Pstd"
+                                                if not nitrogen_enabled:
+                                                    header += " P_SME"
+                                                header += "\n"
                                                 f2.write(header)
                                             if f2:
                                                 line_data = f'{nSi} {nMg} {nO} {nFe} {nH} {nNa} {nC} {nS}'
                                                 if nitrogen_enabled:
                                                     line_data += f' {nN}'
-                                                line_data += f' {Pstd_value} {iP_SME}\n'
+                                                line_data += f' {Pstd_value}'
+                                                if not nitrogen_enabled:
+                                                    line_data += f' {iP_SME}'
+                                                line_data += "\n"
                                                 f2.write(line_data)
 
                                             with open(f"{mainfolder}/{ll}/chem_input.dat", "w") as f:
@@ -358,7 +365,8 @@ def create(version, params=None, output_dir=None):
                                                 f.write(f'T_SME = {T_CMB}\n')
                                                 if sulfur_enabled:
                                                     f.write(f'Pstd = {Pstd_value}\n')
-                                                    f.write(f'P_SME = {iP_SME}\n')
+                                                    if not nitrogen_enabled:
+                                                        f.write(f'P_SME = {iP_SME}\n')
 
                                                 if sulfur_enabled:
                                                     f.write('bound_MgO_silicate = 1.0e-30, 0.9999999999\n')

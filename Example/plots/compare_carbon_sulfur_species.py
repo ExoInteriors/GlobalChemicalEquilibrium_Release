@@ -4,8 +4,9 @@ This script overlays species lines from two different version runs
 (Carbon_Version and Sulfur_Version) on the same plot. Carbon (no sulfur) uses dashed
 lines, Sulfur uses solid lines. The 2x2 plot shows atmosphere molar mixing ratio,
 silicate and metal species mass fractions, and phase mass fractions.
-"""
 
+Run from this file to see comparison plots.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,12 +17,17 @@ import numpy as np
 from matplotlib.lines import Line2D
 from tools.constants import repo_root
 
-from Example.plots.helpers.data_processing_helpers import compute_phase_mass_fractions, prepare_mole_fractions, \
-    prepare_phase_fractions, read_results
-from Example.plots.helpers.plot_constants import BOLD_SPECIES_LABELS, GAS_LINE_ORDER, LATEX_PLOT, METAL_LINE_ORDER, \
-    PHASE_COLORS, PLOT_RCPARAMS, SILICATE_LINE_ORDER
-from Example.plots.helpers.plotting_helpers import axis_label, axis_series, detect_matm_dual_axis, \
-    add_dual_x_axis, set_axis_x_limits, sort_by_mean_and_get_colors, EPSILON
+from Example.plots.helpers.science_postprocessing import compute_phase_mass_fractions, prepare_mole_fractions, prepare_phase_fractions
+from Example.plots.helpers.plot_constants import BOLD_SPECIES_LABELS, EPSILON, GAS_LINE_ORDER, LATEX_PLOT, \
+    METAL_LINE_ORDER, PHASE_COLORS, PLOT_RCPARAMS, SILICATE_LINE_ORDER
+from Example.plots.helpers.plotting_helpers import (
+    add_dual_x_axis,
+    load_comparison_results,
+    resolve_bottom_axis,
+    save_figure,
+    set_axis_x_limits,
+    sort_by_mean_and_get_colors,
+)
 
 plt.rcParams.update(PLOT_RCPARAMS)
 
@@ -204,36 +210,6 @@ def _plot_phase_mass_fractions_comparison(ax, df_carbon, df_sulfur, axis_key: st
     ax.legend(loc="lower left", fontsize="x-small", ncol=1, framealpha=0.8)
 
 
-def _load_comparison_data(carbon_dir: Path, sulfur_dir: Path):
-    """Load and validate carbon and sulfur results for comparison plots.
-    
-    Returns (df_carbon, df_sulfur).
-    Raises ValueError if either dataset is empty.
-    """
-    print(f"Loading Carbon results from {carbon_dir}")
-    df_carbon = read_results(carbon_dir)
-    print(f"Loading Sulfur results from {sulfur_dir}")
-    df_sulfur = read_results(sulfur_dir)
-    
-    if df_carbon is None or df_carbon.empty:
-        raise ValueError(f"No data found in Carbon results: {carbon_dir}")
-    if df_sulfur is None or df_sulfur.empty:
-        raise ValueError(f"No data found in Sulfur results: {sulfur_dir}")
-    
-    return df_carbon, df_sulfur
-
-
-def _save_comparison_figure(fig, output_path: Path | None, default_filename: str) -> None:
-    """Save figure to output path, creating directories as needed."""
-    if output_path is None:
-        output_path = repo_root / "results" / default_filename
-    if not output_path.parent.exists():
-        output_path.parent.mkdir(parents=True)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Figure saved to {output_path}")
-
-
 # ---------------------------------------------------------------------------
 # Main Plotting Function
 # ---------------------------------------------------------------------------
@@ -252,14 +228,8 @@ def plot_carbon_sulfur_comparison(
         axis_key: X-axis variable (default: Matm_Mplanet).
         output_path: Where to save the figure.
     """
-    df_carbon, df_sulfur = _load_comparison_data(carbon_dir, sulfur_dir)
-    dual_info = detect_matm_dual_axis(df_carbon, axis_key)
-    if dual_info:
-        bottom_axis_key, bottom_axis_label = dual_info["bottom_axis_key"], dual_info["label"]
-        bottom_vals, matm_vals = dual_info["bottom_vals"], dual_info["matm_vals"]
-    else:
-        bottom_axis_key, bottom_axis_label = axis_key, axis_label(axis_key)
-        bottom_vals, matm_vals = axis_series(df_carbon, axis_key), None
+    df_carbon, df_sulfur = load_comparison_results(carbon_dir, sulfur_dir)
+    bottom_axis_key, bottom_axis_label, bottom_vals, matm_vals = resolve_bottom_axis(df_carbon, axis_key)
     
     # Define phases for species mass-fraction subplots (Silicate, Metal)
     phases = [
@@ -320,7 +290,7 @@ def plot_carbon_sulfur_comparison(
     fig.legend(handles=version_handles, loc="lower right", bbox_to_anchor=(0.96, 0.1), fontsize="x-small")
     fig.tight_layout()
     fig.subplots_adjust(hspace=-0.05)
-    _save_comparison_figure(fig, output_path, "carbon_sulfur_species_comparison.png")
+    save_figure(fig, output_path=output_path or (repo_root / "results" / "carbon_sulfur_species_comparison.png"))
 
 
 def plot_carbon_sulfur_comparison_no_atm(
@@ -339,14 +309,8 @@ def plot_carbon_sulfur_comparison_no_atm(
         axis_key: X-axis variable (default: Matm_Mplanet).
         output_path: Where to save the figure.
     """
-    df_carbon, df_sulfur = _load_comparison_data(carbon_dir, sulfur_dir)
-    dual_info = detect_matm_dual_axis(df_carbon, axis_key)
-    if dual_info:
-        bottom_axis_key, bottom_axis_label = dual_info["bottom_axis_key"], dual_info["label"]
-        bottom_vals, matm_vals = dual_info["bottom_vals"], dual_info["matm_vals"]
-    else:
-        bottom_axis_key, bottom_axis_label = axis_key, axis_label(axis_key)
-        bottom_vals, matm_vals = axis_series(df_carbon, axis_key), None
+    df_carbon, df_sulfur = load_comparison_results(carbon_dir, sulfur_dir)
+    bottom_axis_key, bottom_axis_label, bottom_vals, matm_vals = resolve_bottom_axis(df_carbon, axis_key)
     
     # Define phases: Silicate, Metal (no Atmosphere)
     phases = [
@@ -394,7 +358,7 @@ def plot_carbon_sulfur_comparison_no_atm(
     fig.legend(handles=version_handles, loc="lower right", bbox_to_anchor=(0.97, 0.175), fontsize="x-small")
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.25)
-    _save_comparison_figure(fig, output_path, "carbon_sulfur_no_atm_comparison.png")
+    save_figure(fig, output_path=output_path or (repo_root / "results" / "carbon_sulfur_no_atm_comparison.png"))
 
 
 def _plot_atmosphere_mixing_ratio_comparison_subplot(ax, df_carbon, df_sulfur, bottom_axis_key, bottom_axis_label):
@@ -440,12 +404,8 @@ def _plot_atmosphere_mixing_ratio_comparison_subplot(ax, df_carbon, df_sulfur, b
     return all_x_vals
 
 
-def plot_atmosphere_mixing_ratio_comparison(
-    carbon_dir: Path,
-    sulfur_dir: Path,
-    axis_key: str = "Matm_Mplanet",
-    output_path: Path | None = None,
-) -> None:
+def plot_atmosphere_mixing_ratio_comparison(carbon_dir: Path, sulfur_dir: Path, axis_key: str = "Matm_Mplanet",
+                                            output_path = None) -> None:
     """Plot atmosphere mixing ratio comparing two versions (No Sulfur vs Sulfur).
     
     Args:
@@ -454,14 +414,8 @@ def plot_atmosphere_mixing_ratio_comparison(
         axis_key: X-axis variable (default: Matm_Mplanet).
         output_path: Where to save the figure.
     """
-    df_carbon, df_sulfur = _load_comparison_data(carbon_dir, sulfur_dir)
-    dual_info = detect_matm_dual_axis(df_carbon, axis_key)
-    if dual_info:
-        bottom_axis_key, bottom_axis_label = dual_info["bottom_axis_key"], dual_info["label"]
-        bottom_vals, matm_vals = dual_info["bottom_vals"], dual_info["matm_vals"]
-    else:
-        bottom_axis_key, bottom_axis_label = axis_key, axis_label(axis_key)
-        bottom_vals, matm_vals = axis_series(df_carbon, axis_key), None
+    df_carbon, df_sulfur = load_comparison_results(carbon_dir, sulfur_dir)
+    bottom_axis_key, bottom_axis_label, bottom_vals, matm_vals = resolve_bottom_axis(df_carbon, axis_key)
     
     fig, ax = plt.subplots(1, 1, figsize=(5.4, 5.4))
     
@@ -481,23 +435,14 @@ def plot_atmosphere_mixing_ratio_comparison(
     ]
     fig.legend(handles=version_handles, loc="lower right", bbox_to_anchor=(0.93, 0.215), fontsize="x-small")
     fig.tight_layout()
-    _save_comparison_figure(fig, output_path, "atmosphere_mixing_ratio_comparison.png")
+    save_figure(fig, output_path=output_path or (repo_root / "results" / "atmosphere_mixing_ratio_comparison.png"))
 
 
-def plot_carbon_sulfur_three_phase_vertical(
-    carbon_dir: Path,
-    sulfur_dir: Path,
-    axis_key: str = "Matm_Mplanet",
-    output_path: Path | None = None,
-) -> None:
+def plot_carbon_sulfur_three_phase_vertical(carbon_dir: Path, sulfur_dir: Path, axis_key: str = "Matm_Mplanet", 
+                                                output_path = None) -> None:
     """Plot 1x3 panels: Atmosphere, Silicate, Metal with one shared x-axis label."""
-    df_carbon, df_sulfur = _load_comparison_data(carbon_dir, sulfur_dir)
-    dual_info = detect_matm_dual_axis(df_carbon, axis_key)
-    if dual_info:
-        # Use the resolved plotting axis values, but keep the requested custom axis label text.
-        bottom_axis_key = dual_info["bottom_axis_key"]
-    else:
-        bottom_axis_key = axis_key
+    df_carbon, df_sulfur = load_comparison_results(carbon_dir, sulfur_dir)
+    bottom_axis_key, _, _, _ = resolve_bottom_axis(df_carbon, axis_key)
 
     bottom_axis_label = r"Accreted water (wt\%)"
     fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.8), sharex=False, sharey=False)
@@ -557,8 +502,7 @@ def plot_carbon_sulfur_three_phase_vertical(
         Line2D([0], [0], color="black", linestyle="-", linewidth=2.0, label="Sulfur"),
         Line2D([0], [0], color="black", linestyle="--", linewidth=2.0, label="No sulfur"),
     ]
-    version_legend = axes[2].legend(
-        handles=version_handles,
+    version_legend = axes[2].legend(handles=version_handles,
         loc="lower right",
         fontsize=9.5,
         framealpha=0.8,
@@ -566,8 +510,7 @@ def plot_carbon_sulfur_three_phase_vertical(
         handlelength=1.2,
         handletextpad=0.35,
         borderpad=0.3,
-        labelspacing=0.25,
-    )
+        labelspacing=0.25)
     if species_legend is not None:
         axes[2].add_artist(species_legend)
     axes[2].add_artist(version_legend)
@@ -587,11 +530,11 @@ def plot_carbon_sulfur_three_phase_vertical(
     axes[0].set_position([pos0.x0, pos0.y0, pos0.width - gap_extra, pos0.height])
     axes[1].set_position([pos1.x0 + gap_extra, pos1.y0, pos1.width - gap_extra, pos1.height])
     axes[2].set_position([pos2.x0 + gap_extra, pos2.y0, pos2.width - gap_extra, pos2.height])
-    _save_comparison_figure(fig, output_path, "carbon_sulfur_three_phase_vertical.png")
+    save_figure(fig, output_path=output_path or (repo_root / "results" / "carbon_sulfur_three_phase_vertical.png"))
 
 
 def main():
-    """Run comparison plot for water parameter sweep."""
+    """Run comparison plots all together from this file."""
     # Hardcoded input directories - update these paths as needed
     carbon_dir = Path(repo_root) / "results" / "feb11" / "water_carbon"
     sulfur_dir = Path(repo_root) / "results" / "feb11" / "water_sulfur"

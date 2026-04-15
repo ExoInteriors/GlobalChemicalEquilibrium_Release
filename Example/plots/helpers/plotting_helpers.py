@@ -1,147 +1,196 @@
-"""Plotting helper functions for visualization of chemistry results.
+"""Shared plotting/data helpers for visualizing GCE results."""
 
-This module provides utilities for:
-- Axis configuration and data extraction
-- Computed series (ΔIW, fO2, mass fractions)
-- Data preparation for plots
-- Generic plotting utilities
-"""
+from pathlib import Path
 import math
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from . import plot_constants
-from .data_processing_helpers import load_atomic_weights, weights_for_columns, weighted_sum
-from tools.calc_fO2 import get_delta_IW, log10_fO2_IW_hirschmann2021
-
-# ---------------------------------------------------------------------------
-# Module Constants
-# ---------------------------------------------------------------------------
-
-EPSILON = 1e-8
+from .plot_constants import GAS_COLUMNS, GCE_FILENAME, METAL_COLUMNS, PARTIAL_MELT_GCE_LABEL, PARTIAL_MELT_GCE_XPOS, PARTIAL_MELT_PERCENT_TICKS, PARTIAL_MELT_XLIM, PLOT_CHI2_MAX, SILICATE_COLUMNS
+from tools.constants import repo_root
 
 
-# ---------------------------------------------------------------------------
-# Computed Series Functions (ΔIW, fO2, mass fractions)
-# ---------------------------------------------------------------------------
-
-def get_delta_iw_series(df):
-    """Return ΔIW (log fO2 model − log fO2_IW) series for plotting."""
-    if df is None or df.empty:
-        return np.array([])
-    required = {"T_SME", "FeO_silicate", "Fe_metal", "Moles_silicate", "Moles_metal"}
-    if not required.issubset(df.columns):
-        return np.full(len(df), np.nan, dtype=float)
-
-    T = df["T_SME"].to_numpy(dtype=float)
-    n_melt = df["Moles_silicate"].to_numpy(dtype=float)
-    n_metal = df["Moles_metal"].to_numpy(dtype=float)
-    n_FeO = df["FeO_silicate"].to_numpy(dtype=float) * n_melt   # FeO in melt
-    n_Fe = df["Fe_metal"].to_numpy(dtype=float) * n_metal       # Fe in metal
-
-    # P_GPa value is arbitrary: inside get_delta_IW the IW buffer terms cancel
-    # (ΔIW = 2·log10(a_FeO/a_Fe)), so the result is independent of pressure.
-    # currently pressure dependency is not used throughout the code.
-    P_GPa = 10.0
-    with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
-        delta = get_delta_IW(P_GPa, T, n_FeO, n_melt, n_Fe, n_metal)
-
-    return np.where(np.isfinite(delta), delta, np.nan)
-
-
-def get_log10_fO2_series(df):
-    """Return log10(fO2) in bar for each row.
-
-    Computes fO2 using the IW buffer at actual P_SME and T_SME, then applies
-    the activity ratio correction: log10(fO2) = log10(fO2_IW) + 2*log10(a_FeO/a_Fe).
-    """
-    if df is None or df.empty:
-        return np.array([])
-    required = {"T_SME", "P_SME", "FeO_silicate", "Fe_metal", "Moles_silicate", "Moles_metal"}
-    if not required.issubset(df.columns):
-        return np.full(len(df), np.nan, dtype=float)
-
-    T = df["T_SME"].to_numpy(dtype=float)
-    P_GPa = df["P_SME"].to_numpy(dtype=float)
-    n_melt = df["Moles_silicate"].to_numpy(dtype=float)
-    n_metal = df["Moles_metal"].to_numpy(dtype=float)
-    n_FeO = df["FeO_silicate"].to_numpy(dtype=float) * n_melt
-    n_Fe = df["Fe_metal"].to_numpy(dtype=float) * n_metal
-
-    with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
-        a_FeO = n_FeO / n_melt
-        a_Fe = n_Fe / n_metal
-        log10_fO2_IW = log10_fO2_IW_hirschmann2021(P_GPa, T)
-        log10_fO2 = log10_fO2_IW + 2.0 * np.log10(a_FeO / a_Fe)
-
-    return np.where(np.isfinite(log10_fO2), log10_fO2, np.nan)
-
-
-def get_matm_mplanet_series(df):
-    """Return the atmospheric mass fraction: Matm / Mtotal.
-
-    Mtotal = Matm + Msilicate + Mmetal (mass of all phases in grams).
-    Each phase mass = moles_phase * (weighted sum of species molar masses in that phase).
-    NaN handling (e.g. when HHe=0) is done inside mass_arrays.
-    """
-    if df is None or df.empty:
-        return np.array([])
-    mu = load_atomic_weights()
-    _, _, _, grams_atm, _, _, total_mass = mass_arrays(df, mu)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ratio = np.where(total_mass > 0, grams_atm / total_mass, 0.0)
-    return np.where(np.isfinite(ratio), ratio, 0.0)
+def _best_effort_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy ``df`` and make df numeric."""
+    if df.empty:
+        return df
+    output = df.copy()
+    for column in output.columns:
+        try:
+            output[column] = pd.to_numeric(output[column])
+        except (ValueError, TypeError):
+            pass
+    return output
 
 
 # ---------------------------------------------------------------------------
-# Axis Configuration & Functions
+# Data Loading / Shared Numeric Helpers
 # ---------------------------------------------------------------------------
 
-# Data-driven axis definitions: (column, multiplier, fallback_column, default_mode)
-# default_mode: 'zeros' returns zeros if column missing, 'arange' returns np.arange(len(df))
+def read_results(path, *, filter_bad_chi2: bool = False, chi2_max: float = PLOT_CHI2_MAX) -> pd.DataFrame:
+    """Read the GCE results and format it in the way we need."""
+    results_path = Path(path) / "results.dat"
+
+    if not results_path.exists():
+        return pd.DataFrame()
+
+    df = pd.read_csv(results_path, sep=r"\s+")
+    df.columns = df.columns.str.lstrip("#")
+    if "version" in df.columns:
+        df = df.drop(columns=["version"])
+    df = _best_effort_numeric_df(df)
+    df = df.dropna(how="all").reset_index(drop=True)
+
+    if filter_bad_chi2 and "chi^2" in df.columns:
+        chi2 = pd.to_numeric(df["chi^2"], errors="coerce")
+        valid = np.isfinite(chi2) & (chi2 <= float(chi2_max))
+        dropped = int((~valid).sum())
+        if dropped > 0:
+            print(
+                f"Skipping {dropped} high-chi^2 row(s) in {results_path} "
+                f"(threshold chi^2 <= {chi2_max:g})."
+            )
+        df = df.loc[valid].reset_index(drop=True)
+
+    return df
+
+
+def load_atomic_weights():
+    """Load atomic/molecular weights from Molecular_Weight.dat."""
+    mu = {}
+    mw_file = os.path.join(repo_root, "Molecular_Weight.dat")
+    if os.path.exists(mw_file):
+        with open(mw_file, encoding="utf-8") as fh:
+            for line in fh:
+                if "=" not in line:
+                    continue
+                name, value = line.split("=", 1)
+                key = name.strip()
+                try:
+                    val = float(value)
+                except ValueError:
+                    continue
+                mu[key] = val
+    return mu
+
+
+def weighted_sum(df, weights):
+    """Return the weighted sum of columns."""
+    total = np.zeros(len(df))
+    for name, weight in weights.items():
+        if weight == 0.0:
+            continue
+        column = df[name].to_numpy() if name in df.columns else np.zeros(len(df))
+        total += column * weight
+    return total
+
+
+def mass_arrays(df_source: pd.DataFrame, mu: dict):
+    """Return mass-related arrays (moles and grams) for atmosphere, silicate, and metal."""
+    m_atm = df_source["Moles_atm"].to_numpy() if "Moles_atm" in df_source.columns else np.zeros(len(df_source))
+    m_sil = df_source["Moles_silicate"].to_numpy() if "Moles_silicate" in df_source.columns else np.zeros(len(df_source))
+    m_met = df_source["Moles_metal"].to_numpy() if "Moles_metal" in df_source.columns else np.zeros(len(df_source))
+
+    gas_weights = {name: mu.get(name, 0.0) for name in GAS_COLUMNS if name in df_source.columns}
+    silicate_weights = {name: mu.get(name, 0.0) for name in SILICATE_COLUMNS if name in df_source.columns}
+    metal_weights = {name: mu.get(name, 0.0) for name in METAL_COLUMNS if name in df_source.columns}
+
+    grams_per_mole_atm = weighted_sum(df_source, gas_weights)
+    grams_per_mole_silicate = weighted_sum(df_source, silicate_weights)
+    grams_per_mole_metal = weighted_sum(df_source, metal_weights)
+
+    grams_atm = np.nan_to_num(np.asarray(m_atm * grams_per_mole_atm, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    grams_silicate = np.nan_to_num(np.asarray(m_sil * grams_per_mole_silicate, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    grams_metal = np.nan_to_num(np.asarray(m_met * grams_per_mole_metal, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    total_mass = grams_atm + grams_silicate + grams_metal
+    return m_atm, m_sil, m_met, grams_atm, grams_silicate, grams_metal, total_mass
+
+
+# ---------------------------------------------------------------------------
+# Axis Metadata / Axis Data Helpers
+# ---------------------------------------------------------------------------
+
+def axis_dataframe(df_source: pd.DataFrame, axis_key: str) -> pd.DataFrame:
+    """Return a filtered dataframe for axis plotting when needed."""
+    if axis_key == "f_melt" and "f_melt" in df_source.columns:
+        f_melt = pd.to_numeric(df_source["f_melt"], errors="coerce").to_numpy(dtype=float)
+        mask = ~(np.isfinite(f_melt) & np.isclose(f_melt, 0.0, atol=1e-12, rtol=0.0))
+        return df_source.loc[mask].reset_index(drop=True)
+    if (
+        axis_key in ("T_AMOI", "T_SME")
+        and "T_AMOI" in df_source.columns
+        and "T_SME" in df_source.columns
+    ):
+        diff = np.abs(
+            df_source["T_AMOI"].to_numpy(dtype=float)
+            - df_source["T_SME"].to_numpy(dtype=float)
+        )
+        mask = np.isclose(diff, 500.0, atol=1e-6, rtol=1e-6)
+        return df_source.loc[mask].reset_index(drop=True)
+    return df_source
+
+# for plotting
 AXIS_DEFINITIONS = {
-    'HHe': {
-        'label': r'Accreted H from primordial gas (wt \%)',
-        'column': 'HHe_ratio', 'multiplier': 100.0, 'fallback': 'iHHe mass fraction', 'default': 'arange',
+    "HHe": {
+        "label": r"Accreted H from primordial gas (wt \%)",
+        "column": "HHe_ratio",
+        "multiplier": 100.0,
+        "fallback": "iHHe mass fraction",
+        "default": "arange",
     },
-    'Water': {
-        'label': r'Accreted water after formation (wt \%)',
-        'column': 'fWater', 'multiplier': 100.0, 'default': 'zeros',
+    "Water": {
+        "label": r"Accreted water after formation (wt \%)",
+        "column": "fWater",
+        "multiplier": 100.0,
+        "default": "zeros",
     },
-    'P_AMOI': {
-        'label': 'AMOI pressure (GPa)',
-        'column': 'Pstd', 'multiplier': 1e-4, 'default': 'zeros',  # bars → GPa
+    "P_AMOI": {
+        "label": "AMOI pressure (GPa)",
+        "column": "Pstd",
+        "multiplier": 1e-4,
+        "default": "zeros",
     },
-    'P_SME': {
-        'label': 'SME pressure (GPa)',
-        'column': 'P_SME', 'multiplier': 1.0, 'default': 'zeros',
+    "P_SME": {
+        "label": "SME pressure (GPa)",
+        "column": "P_SME",
+        "multiplier": 1.0,
+        "default": "zeros",
     },
-    'T_AMOI': {
-        'label': 'AMOI temperature (K)',
-        'column': 'T_AMOI', 'multiplier': 1.0, 'default': 'zeros',
+    "T_AMOI": {
+        "label": "AMOI temperature (K)",
+        "column": "T_AMOI",
+        "multiplier": 1.0,
+        "default": "zeros",
     },
-    'T_SME': {
-        'label': 'SME temperature (K)',
-        'column': 'T_SME', 'multiplier': 1.0, 'default': 'zeros',
+    "T_SME": {
+        "label": "SME temperature (K)",
+        "column": "T_SME",
+        "multiplier": 1.0,
+        "default": "zeros",
     },
-    'Planetmass': {
-        # LaTeX math only (no Unicode): usetex/pdfLaTeX rejects raw Δ, −, ⊕, etc.
-        'label': r'Planet mass ($M_\oplus$)',
-        'column': 'Planetmass', 'multiplier': 1.0, 'default': 'zeros',
+    "Planetmass": {
+        "label": r"Planet mass ($M_\oplus$)",
+        "column": "Planetmass",
+        "multiplier": 1.0,
+        "default": "zeros",
     },
-    'delta_IW': {
-        'label': r'$\Delta$IW (log $f_{\mathrm{O}_2}$ model $-$ log $f_{\mathrm{O}_2,\mathrm{IW}}$)',
-        'getter': get_delta_iw_series,  # complex calculation, keep as function
+    "f_melt": {
+        "label": r"Computed solid fraction (\%)",
     },
-    'O': {
-        'label': 'Percent oxygen added or subtracted from initial chondritic baseline',
-        'column': 'iDeltaO_frac', 'multiplier': 100.0, 'default': 'zeros',
+    "delta_IW": {
+        "label": r"$\Delta$IW (log $f_{\mathrm{O}_2}$ model $-$ log $f_{\mathrm{O}_2,\mathrm{IW}}$)",
     },
-    'Matm_Mplanet': {
-        'label': plot_constants.LATEX_PLOT["matm_over_mplanet"],
-        'getter': get_matm_mplanet_series,  # complex calculation, keep as function
+    "O": {
+        "label": "Percent oxygen added or subtracted from initial chondritic baseline",
+        "column": "iDeltaO_frac",
+        "multiplier": 100.0,
+        "default": "zeros",
+    },
+    "Matm_Mplanet": {
+        "label": plot_constants.LATEX_PLOT["matm_over_mplanet"],
     },
 }
 
@@ -152,9 +201,12 @@ AXIS_ALIASES = {
     "P_SME_array": "P_SME",
     "tarOarray": "O",
     "Planetmassarray": "Planetmass",
+    "f_melt_array": "f_melt",
     "T_AMOI_array": "T_AMOI",
     "T_SME_array": "T_SME",
 }
+
+axis_keys = tuple(AXIS_DEFINITIONS.keys())
 
 
 def axis_series(df, axis_key):
@@ -165,36 +217,214 @@ def axis_series(df, axis_key):
         print(f"Warning: unknown axis key '{axis_key}', falling back to row index")
         return np.arange(len(df)) if df is not None else np.array([])
 
-    # If a custom getter function is defined, use it
-    if 'getter' in config:
-        return config['getter'](df)
+    if axis_key == "f_melt":
+        from .science_postprocessing import get_f_solid_series
 
-    # Data-driven lookup: (column, multiplier, fallback, default_mode)
+        return get_f_solid_series(df)
+    if axis_key == "delta_IW":
+        from .science_postprocessing import get_delta_iw_series
+
+        return get_delta_iw_series(df)
+    if axis_key == "Matm_Mplanet":
+        from .science_postprocessing import get_matm_mplanet_series
+
+        return get_matm_mplanet_series(df)
+
     if df is None:
         return np.array([])
-    col = config.get('column')
-    fallback = config.get('fallback')
-    multiplier = config.get('multiplier', 1.0)
-    default_mode = config.get('default', 'zeros')
+    column = config.get("column")
+    fallback = config.get("fallback")
+    multiplier = config.get("multiplier", 1.0)
+    default_mode = config.get("default", "zeros")
 
-    if col in df.columns:
-        return df[col].to_numpy() * multiplier
+    if column in df.columns:
+        return df[column].to_numpy(dtype=float) * multiplier
     if fallback and fallback in df.columns:
-        return df[fallback].to_numpy() * multiplier
-    return np.arange(len(df)) if default_mode == 'arange' else np.zeros(len(df))
+        return df[fallback].to_numpy(dtype=float) * multiplier
+    return np.arange(len(df)) if default_mode == "arange" else np.zeros(len(df))
 
 
 def axis_label(axis_key):
     """Return the human-readable label string for an axis."""
     axis_key = AXIS_ALIASES.get(axis_key, axis_key)
-    config = AXIS_DEFINITIONS.get(axis_key, {})
-    return config.get('label', axis_key)
+    return AXIS_DEFINITIONS.get(axis_key, {}).get("label", axis_key)
 
 
-def make_panel_title(base_title, axis_key, value):
+def resolve_bottom_axis(df, axis_key: str):
+    """Return bottom-axis key/label plus optional Matm/Mplanet dual-axis values."""
+    from .science_postprocessing import detect_matm_dual_axis
+
+    dual_info = detect_matm_dual_axis(df, axis_key)
+    if dual_info:
+        return (
+            dual_info["bottom_axis_key"],
+            dual_info["label"],
+            dual_info["bottom_vals"],
+            dual_info["matm_vals"],
+        )
+    return axis_key, axis_label(axis_key), axis_series(df, axis_key), None
+
+
+# ---------------------------------------------------------------------------
+# Filesystem / Plot Prep Helpers
+# ---------------------------------------------------------------------------
+
+def axis_plot_dir(path, axis_key):
+    """Return the output directory for plots on a given axis."""
+    if axis_key == "f_melt":
+        return os.path.join(path, "plots")
+    return os.path.join(path, "plots", axis_key)
+
+
+def save_figure(
+    fig,
+    *,
+    output_path: Path | None = None,
+    path=None,
+    directory=None,
+    filename: str | None = None,
+    dpi=150,
+    bbox_inches="tight",
+) -> None:
+    """Save a figure to ``output_path`` or under a computed output directory."""
+    if output_path is not None:
+        destination = Path(output_path)
+    else:
+        if filename is None:
+            raise ValueError("A filename is required when output_path is not provided.")
+        if directory is not None:
+            destination = Path(directory) / filename
+        elif path is not None:
+            destination = Path(path) / "plots" / filename
+        else:
+            raise ValueError("Either output_path, directory, or path must be provided.")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(destination, dpi=dpi, bbox_inches=bbox_inches)
+    plt.close(fig)
+    print(f"Figure saved to {destination}")
+
+
+def load_comparison_results(carbon_dir: Path, sulfur_dir: Path):
+    """Load and validate carbon and sulfur comparison datasets."""
+    print(f"Loading Carbon results from {carbon_dir}")
+    df_carbon = read_results(carbon_dir, filter_bad_chi2=True)
+    print(f"Loading Sulfur results from {sulfur_dir}")
+    df_sulfur = read_results(sulfur_dir, filter_bad_chi2=True)
+
+    if df_carbon is None or df_carbon.empty:
+        raise ValueError(f"No data found in Carbon results: {carbon_dir}")
+    if df_sulfur is None or df_sulfur.empty:
+        raise ValueError(f"No data found in Sulfur results: {sulfur_dir}")
+
+    return df_carbon, df_sulfur
+
+
+def ensure_reduced_phase_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Attach zero for metal columns in the partial melt situation."""
+    output = df.copy()
+    for column in GAS_COLUMNS + METAL_COLUMNS + ["Moles_metal"]:
+        if column not in output.columns:
+            output[column] = 0.0
+    return output
+
+
+def add_partial_melt_gce_marker_label(ax, label: str = PARTIAL_MELT_GCE_LABEL) -> None:
+    """Annotate the left-side GCE marker label on a partial-melt axis."""
+    ax.annotate(
+        label,
+        xy=(PARTIAL_MELT_GCE_XPOS, 0.0),
+        xycoords=ax.get_xaxis_transform(),
+        xytext=(0, -16),
+        textcoords="offset points",
+        ha="center",
+        va="top",
+        clip_on=False,
+    )
+
+
+def apply_partial_melt_percent_axis(ax) -> None:
+    """Set the standard 0-100% partial-melt x-axis framing."""
+    ax.set_xlim(*PARTIAL_MELT_XLIM)
+    ax.set_xticks(PARTIAL_MELT_PERCENT_TICKS.tolist())
+    ax.minorticks_off()
+
+
+def apply_partial_melt_axis(ax, label: str = PARTIAL_MELT_GCE_LABEL) -> None:
+    """Apply standard partial-melt framing and the left-side GCE label."""
+    apply_partial_melt_percent_axis(ax)
+    add_partial_melt_gce_marker_label(ax, label=label)
+
+
+def get_partial_melt_plot_context(path, axis_key):
+    """Return the saved GCE row used for partial-melt plots."""
+    if axis_key != "f_melt":
+        return None
+    source_path = Path(path) / GCE_FILENAME
+    if not source_path.exists():
+        return None
+    source_df = pd.read_csv(source_path)
+    if source_df.empty:
+        return None
+    return source_df.iloc[0]
+
+
+def plot_partial_melt_markers(
+    ax,
+    *,
+    color,
+    gce_y_axis=None,
+    partial_melt_x_axis=None,
+    partial_melt_y_axis=None,
+    left_markersize=8,
+    curve_markersize=6,
+    show_first_partial_melt_marker=False,
+) -> None:
+    """Draw the left GCE marker and optionally the first partial-melt point marker."""
+    if gce_y_axis is not None and np.isfinite(gce_y_axis):
+        ax.plot(
+            [PARTIAL_MELT_GCE_XPOS],
+            [float(gce_y_axis)],
+            marker="o",
+            linestyle="None",
+            color=color,
+            markersize=left_markersize,
+        )
+
+    if (
+        show_first_partial_melt_marker
+        and partial_melt_x_axis is not None
+        and partial_melt_y_axis is not None
+        and np.isfinite(partial_melt_x_axis)
+        and np.isfinite(partial_melt_y_axis)
+    ):
+        ax.plot(
+            [partial_melt_x_axis],
+            [float(partial_melt_y_axis)],
+            marker="o",
+            linestyle="None",
+            color=color,
+            markersize=curve_markersize,
+        )
+
+
+def first_partial_melt_point(x_vals, y_vals):
+    """Return the first valid plotted point after the left GCE marker."""
+    x_arr = np.asarray(x_vals, dtype=float)
+    y_arr = np.asarray(y_vals, dtype=float)
+    valid = np.isfinite(x_arr) & np.isfinite(y_arr)
+    if not np.any(valid):
+        return None, None
+    valid_indices = np.flatnonzero(valid)
+    idx = int(valid_indices[np.argmin(x_arr[valid_indices])])
+    return float(x_arr[idx]), float(y_arr[idx])
+
+
+def make_panel_title(axis_key, value, base_title: str = ""):
     """Create a panel title by combining base title with axis-specific descriptor.
     
-    If value is None, returns just base_title.
+    If ``value`` is None, returns ``base_title``.
+    If ``base_title`` is empty, returns just the axis-specific descriptor.
     Otherwise returns "{base_title} -- {descriptor}" (ASCII --; em-dash breaks pdfLaTeX).
     """
     if value is None:
@@ -205,6 +435,8 @@ def make_panel_title(base_title, axis_key, value):
         panel = f"HHe = {value:.3g}"
     else:
         panel = str(value)
+    if not base_title:
+        return panel
     return f"{base_title} -- {panel}"
 
 
@@ -246,7 +478,7 @@ def axis_panel_subsets(axis_key, df):
 
 
 # ---------------------------------------------------------------------------
-# Plotting Utilities
+# Generic Plotting Utilities
 # ---------------------------------------------------------------------------
 
 def set_axis_x_limits(ax, x_vals, max_ticks=15):
@@ -271,7 +503,7 @@ def set_axis_x_limits(ax, x_vals, max_ticks=15):
         ax.set_xticks(unique_x)
 
 
-def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
+def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None, max_ticks=12):
     """Add a secondary top x-axis mapped to the same positions as the bottom axis.
 
     Args:
@@ -279,6 +511,7 @@ def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
         bottom_vals: Array of bottom axis values (used for tick positions).
         top_vals: Array of top axis values (same length as bottom_vals).
         top_label: Optional label for the top axis.
+        max_ticks: Maximum number of mirrored ticks to place on each x-axis.
     """
     if bottom_vals is None or top_vals is None:
         return None
@@ -291,26 +524,42 @@ def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
     if finite_bottom.size == 0:
         return None
 
-    # Ensure bottom axis shows full range with one tick per data point
+    # Ensure bottom axis shows the full range, but do not force one tick per
+    # data point. Dense sweeps can contain hundreds or thousands of unique
+    # values, which makes Matplotlib spend a lot of time building unusable tick
+    # lists and can trigger Locator.MAXTICKS warnings.
     ax.set_xlim(finite_bottom.min(), finite_bottom.max())
     unique_bottom = np.unique(finite_bottom)
-    ax.set_xticks(unique_bottom)
+    if unique_bottom.size > 1 and finite_bottom.min() >= -1.0e-9 and finite_bottom.max() <= 100.0 + 1.0e-9:
+        tick_positions = PARTIAL_MELT_PERCENT_TICKS.copy()
+        tick_positions = tick_positions[
+            (tick_positions >= finite_bottom.min() - 1.0e-9)
+            & (tick_positions <= finite_bottom.max() + 1.0e-9)
+        ]
+        if tick_positions.size == 0:
+            tick_positions = np.asarray([finite_bottom.min(), finite_bottom.max()], dtype=float)
+    elif len(unique_bottom) <= max_ticks:
+        tick_positions = unique_bottom
+    else:
+        tick_indices = np.linspace(0, len(unique_bottom) - 1, max_ticks, dtype=int)
+        tick_positions = unique_bottom[tick_indices]
+    ax.set_xticks(tick_positions)
 
     # Create top axis
     ax_top = ax.twiny()
     ax_top.set_xlim(ax.get_xlim())
 
-    # Map each bottom tick position to corresponding top value
+    # Map each mirrored bottom tick position to the corresponding top-axis value.
     top_tick_labels = []
-    for tick_pos in unique_bottom:
+    for tick_pos in tick_positions:
         idx = np.argmin(np.abs(bottom_vals - tick_pos))
         if idx < len(top_vals) and np.isfinite(top_vals[idx]):
             top_tick_labels.append(f"{top_vals[idx]:.4f}")
         else:
             top_tick_labels.append("")
 
-    if len(top_tick_labels) == len(unique_bottom):
-        ax_top.set_xticks(unique_bottom)
+    if len(top_tick_labels) == len(tick_positions):
+        ax_top.set_xticks(tick_positions)
         ax_top.set_xticklabels(top_tick_labels)
 
     if top_label:
@@ -324,12 +573,12 @@ def add_dual_x_axis(ax, bottom_vals, top_vals, top_label=None):
     return ax_top
 
 
-
-def _safe_nanmean(arr):
-    """Return nanmean of array, or np.nan if no finite values (avoids 'Mean of empty slice' warning)."""
-    a = np.asarray(arr, dtype=float)
-    finite = a[np.isfinite(a)]
-    return np.nan if finite.size == 0 else np.mean(finite)
+def turbo_colors(n: int, cmap_name: str = "turbo"):
+    """Return ``n`` colors along a colormap (high rank → ``cmap(1)``), used for species stacks and lines."""
+    if n <= 0:
+        return []
+    cmap = plt.get_cmap(cmap_name)
+    return [cmap(1 - i / (n - 1)) if n > 1 else cmap(0.5) for i in range(n)]
 
 
 def sort_by_mean_and_get_colors(fractions, labels, cmap_name="turbo", mask_nonpositive=False):
@@ -345,63 +594,52 @@ def sort_by_mean_and_get_colors(fractions, labels, cmap_name="turbo", mask_nonpo
         (sorted_indices, sorted_labels, colors) tuple
     """
     if mask_nonpositive:
-        mean_vals = [_safe_nanmean(np.where(fractions[:, i] <= 0, np.nan, fractions[:, i])) for i in range(len(labels))]
+        mean_vals = []
+        for i in range(len(labels)):
+            a = np.asarray(np.where(fractions[:, i] <= 0, np.nan, fractions[:, i]), dtype=float)
+            finite = a[np.isfinite(a)]
+            mean_vals.append(np.nan if finite.size == 0 else np.mean(finite))
     else:
-        mean_vals = [_safe_nanmean(fractions[:, i]) for i in range(len(labels))]
+        mean_vals = []
+        for i in range(len(labels)):
+            a = np.asarray(fractions[:, i], dtype=float)
+            finite = a[np.isfinite(a)]
+            mean_vals.append(np.nan if finite.size == 0 else np.mean(finite))
     sorted_indices = np.argsort(mean_vals)[::-1]  # descending: largest mean first
     sorted_labels = [labels[i] for i in sorted_indices]
-    
-    cmap = plt.get_cmap(cmap_name)
-    n = len(sorted_labels)
-    colors = [cmap(1 - i / (n - 1)) if n > 1 else cmap(0.5) for i in range(n)]
+    colors = turbo_colors(len(sorted_labels), cmap_name=cmap_name)
     return sorted_indices, sorted_labels, colors
 
 
-def detect_matm_dual_axis(df, axis_key):
-    """Detect dual x-axis configuration for Matm_Mplanet plots.
-    
-    When plotting against Matm_Mplanet, determines which base axis (HHe or Water)
-    varies and returns the configuration for a dual x-axis.
-    
-    Note: matm_vals is only populated for H/He accretion (not water accretion),
-    since Matm/Mplanet notation is only relevant for primordial gas accretion.
-    
-    Args:
-        df: DataFrame with results.
-        axis_key: The requested axis key.
-    
-    Returns:
-        Dict with keys: bottom_axis_key, label, bottom_vals, matm_vals.
-        matm_vals is None for water accretion (no dual axis needed).
-        Returns None if not a Matm_Mplanet plot or no variation detected.
-    """
-    if axis_key != "Matm_Mplanet":
+def sort_by_gce_colors(pre_values, columns, labels, cmap_name="turbo"):
+    """Sort species by GCE magnitude and assign colormap colors."""
+    scores = np.empty(len(columns), dtype=float)
+    for index, column in enumerate(columns):
+        value = pre_values.get(column, np.nan)
+        try:
+            float_value = float(value)
+        except (TypeError, ValueError):
+            float_value = np.nan
+        scores[index] = float_value if np.isfinite(float_value) and float_value > 0.0 else -np.inf
+    if not np.any(scores > 0.0):
         return None
-    
-    hhe_vals = axis_series(df, "HHe")
-    water_vals = axis_series(df, "Water")
-    hhe_varied = len(np.unique(hhe_vals[np.isfinite(hhe_vals)])) > 1 if hhe_vals.size > 0 else False
-    water_varied = len(np.unique(water_vals[np.isfinite(water_vals)])) > 1 if water_vals.size > 0 else False
+    sorted_indices = np.argsort(-scores, kind="stable")
+    sorted_labels = [labels[index] for index in sorted_indices]
+    colors = turbo_colors(len(sorted_indices), cmap_name=cmap_name)
+    return sorted_indices, sorted_labels, colors
 
-    if hhe_varied:
-        return {
-            "bottom_axis_key": "HHe",
-            "label": r"Accreted H from primordial gas (wt \%)",
-            "bottom_vals": hhe_vals,
-            "matm_vals": get_matm_mplanet_series(df),  # dual axis for H/He accretion
-        }
-    if water_varied:
-        return {
-            "bottom_axis_key": "Water",
-            "label": r"Accreted water after formation (wt \%)",
-            "bottom_vals": water_vals,
-            "matm_vals": None,  # no dual axis for water accretion
-        }
-    return None
+
+def sort_multiseries_gce_or_mean(fractions, labels, columns, pre_values, *, mask_nonpositive=True):
+    """Prefer GCE ranking when available, else fall back to mean along the series."""
+    if pre_values is not None:
+        gce_sort = sort_by_gce_colors(pre_values, columns, labels)
+        if gce_sort is not None:
+            return gce_sort
+    return sort_by_mean_and_get_colors(fractions, labels, mask_nonpositive=mask_nonpositive)
 
 
 # ---------------------------------------------------------------------------
-# Generic Plotting Functions
+# Figure Layout / Saving Helpers
 # ---------------------------------------------------------------------------
 
 def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel_height=4, single_figsize=(8, 6), suptitle=None):
@@ -435,10 +673,7 @@ def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel
         if suptitle:
             fig.suptitle(suptitle)
         fig.tight_layout()
-        plot_dir = os.path.join(path, 'plots', axis_key)
-        os.makedirs(plot_dir, exist_ok=True)
-        fig.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
-        plt.close(fig)
+        save_figure(fig, directory=axis_plot_dir(path, axis_key), filename=f"{basename}_{axis_key}.png")
     else:
         fig, ax = plt.subplots(figsize=single_figsize)
         if draw_fn(ax, df, axis_key):
@@ -446,65 +681,28 @@ def plot_panels_or_single(df, axis_key, draw_fn, title_fn, path, basename, panel
             if suptitle:
                 fig.suptitle(suptitle)
             fig.tight_layout()
-            plot_dir = os.path.join(path, 'plots', axis_key)
-            os.makedirs(plot_dir, exist_ok=True)
-            fig.savefig(os.path.join(plot_dir, f"{basename}_{axis_key}.png"), bbox_inches="tight")
-        plt.close(fig)
+            save_figure(fig, directory=axis_plot_dir(path, axis_key), filename=f"{basename}_{axis_key}.png")
+        else:
+            plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Axis and Slice Configuration for Phase Line Plots
-# ---------------------------------------------------------------------------
-
-# Secondary axis config for variable_mass_phase_lines.py.
-# Entries that overlap with AXIS_DEFINITIONS use the same canonical labels.
-# Config entries can specify:
-# - "axis_key": use axis_series(df, key) to get values
-# - "column": read directly from df[column] (for pre-computed columns)
-# - "getter": callable(df) -> array for complex calculations
-
-AXIS_CONFIG: dict[str, dict] = {
-    "HHe": {"axis_key": "HHe", "label": AXIS_DEFINITIONS["HHe"]["label"]},
-    "P_GPa": {"axis_key": "P_SME", "label": AXIS_DEFINITIONS["P_SME"]["label"]},
-    "delta_IW": {"column": "delta_IW", "label": AXIS_DEFINITIONS["delta_IW"]["label"]},
-    "log10_fO2": {"column": "log10_fO2", "label": r'$\log_{10}(f_{\mathrm{O}_2})$ (bar)'},
-    "Matm_Mplanet": {"getter": get_matm_mplanet_series, "label": AXIS_DEFINITIONS["Matm_Mplanet"]["label"]},
-}
-
-SLICE_CONFIG: dict[str, dict] = {
-    "Planetmass": {
-        "axis_key": "Planetmass",
-        "label": "Planet mass",
-        "unit": r"$M_\oplus$",
-        "format": lambda v: rf"M={v:.1f} $M_\oplus$",
-    },
-    "P_SME": {
-        "axis_key": "P_SME",
-        "label": "SME pressure",
-        "unit": "GPa",
-        "format": lambda v: f"P={v:.1f} GPa",
-    },
-    "HHe": {
-        "axis_key": "HHe",
-        "label": "Accreted H",
-        "unit": r"wt \%",
-        "format": lambda v: rf"H={v:.3g} wt\%",
-    },
-}
+def save_axis_figure(fig, path, axis_key, basename):
+    """Tighten layout and save a figure under plots/<axis_key>/<basename>_<axis_key>.png."""
+    if axis_key == "f_melt":
+        # Reserve extra bottom margin so the shared pre-melt annotation does not
+        # crowd out the primary computed-solid x-axis label.
+        fig.tight_layout(rect=(0.0, 0.06, 1.0, 1.0))
+    else:
+        fig.tight_layout()
+    save_figure(fig, directory=axis_plot_dir(path, axis_key), filename=f"{basename}_{axis_key}.png", dpi=plt.rcParams.get("savefig.dpi", 150))
 
 
-def get_config_values(df, config: dict) -> np.ndarray:
-    """Extract values from a DataFrame using an AXIS_CONFIG or SLICE_CONFIG entry.
-
-    The config dict should have one of:
-    - "getter": callable(df) -> array
-    - "column": column name to read directly from df
-    - "axis_key": key to pass to axis_series()
-    """
-    if "getter" in config:
-        return config["getter"](df)
-    if "column" in config:
-        return df[config["column"]].to_numpy(dtype=float)
-    if "axis_key" in config:
-        return axis_series(df, config["axis_key"])
-    raise ValueError("Config must have 'getter', 'column', or 'axis_key'")
+def draw_panel_or_single_figure(df_or_panels, axis_key, path, basename, *, multi_figure_fn, multi_draw_fn, single_figure_fn, single_draw_fn):
+    """Create, draw, and save either a panelled figure or a single figure."""
+    if isinstance(df_or_panels, list):
+        fig, axes = multi_figure_fn(len(df_or_panels))
+        multi_draw_fn(fig, axes, df_or_panels, axis_key)
+    else:
+        fig, axes = single_figure_fn()
+        single_draw_fn(fig, axes, df_or_panels, axis_key)
+    save_axis_figure(fig, path, axis_key, basename)

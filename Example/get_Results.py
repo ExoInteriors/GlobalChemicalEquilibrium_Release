@@ -265,6 +265,10 @@ def get_results(path=None):
 
 	totalmass = grams_atm + grams_silicate + grams_metal
 	Matm = grams_atm / totalmass
+	interior_massfrac = 1.0 - Matm
+	with np.errstate(divide='ignore', invalid='ignore'):
+		Pstd = 1.2e6 * (Matm / interior_massfrac) * np.power(M * interior_massfrac, 2.0 / 3.0)
+	Pstd = np.where((interior_massfrac > 0.0) & np.isfinite(Pstd), Pstd, np.nan)
 
 	Fe_metal_massfrac = Fe_metal * mu_Fe * Moles_metal / (totalmass * MolesTotal)
 	C_metal_massfrac  = C_metal  * mu_C  * Moles_metal / (totalmass * MolesTotal)

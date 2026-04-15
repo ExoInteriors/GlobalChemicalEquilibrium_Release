@@ -50,5 +50,5 @@ the documentation is then build at doc/build/html/index.html
 
 make latexpdf
 
-the documentation is then build at doc/build/latex/fastglobalchemcode.pdf 
+the documentation is then build at doc/build/latex/GlobalChemicalEquilibriumcode.pdf 
 

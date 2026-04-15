@@ -1,5 +1,24 @@
 import re
 
+import numpy as np
+
+EPSILON = 1e-8
+PLOT_CHI2_MAX = 1e-3
+
+RESULTS_DAT_FILENAME = "results.dat"
+SUMMARY_CHEM_INPUT_FILENAME = "summary_chem_input_GEC.csv"
+PARAMETERS_ALL_FILENAME = "parametersAll.dat"
+PARTIAL_MELT_REFERENCE_FILENAME = "partial_melt_reference.csv"
+PARTIAL_MELT_STEP_SNAPSHOT_FILENAME = "partial_melt_step_snapshot.csv"
+GCE_FILENAME = "gce_for_partial_melt_data.csv"
+MIN_DAT_FILENAME = "min.dat"
+CHI_DAT_FILENAME = "chi.dat"
+
+PARTIAL_MELT_PERCENT_TICKS = np.asarray([0.0, 25.0, 50.0, 75.0, 100.0], dtype=float)
+PARTIAL_MELT_GCE_XPOS = -5.0
+PARTIAL_MELT_XLIM = (-10.0, 100.0)
+PARTIAL_MELT_GCE_LABEL = "Full-melt GCE"
+
 # ---------------------------------------------------------------------------
 # Species Label Formatting
 # ---------------------------------------------------------------------------
@@ -14,11 +33,15 @@ def format_species_label(species_name):
         FeO15_silicate -> FeO$_{1.5}$
         Fe_metal -> Fe
     """
-    # Remove phase suffix (_gas, _silicate, _metal)
-    for suffix in ("_gas", "_silicate", "_metal", "_melt"):
-        if species_name.endswith(suffix):
-            species_name = species_name[:-len(suffix)]
-            break
+    # Remove plotting/storage suffixes until only the chemical formula remains.
+    stripped = True
+    while stripped:
+        stripped = False
+        for suffix in ("_solid_frac", "_gas", "_silicate", "_metal", "_melt"):
+            if species_name.endswith(suffix):
+                species_name = species_name[:-len(suffix)]
+                stripped = True
+                break
     # Convert numbers to LaTeX subscripts: digit(s) -> $_{\d+}$ or $_\d$
     # Use $_{...}$ for multi-digit, $_x$ for single digit
     def replace_num(match):
@@ -65,6 +88,9 @@ GAS_COLUMNS = [
     "HCN_gas",
 ]
 
+REFRACTORY_GAS_SPECIES = ("Fe_gas", "Mg_gas", "SiO_gas", "Na_gas", "SiH4_gas")
+NONREFRACTORY_GAS_COLUMNS = tuple(species for species in GAS_COLUMNS if species not in REFRACTORY_GAS_SPECIES)
+
 SILICATE_COLUMNS = [
     "FeO_silicate",
     "SiO2_silicate",
@@ -83,6 +109,8 @@ SILICATE_COLUMNS = [
     "N2_silicate",
 ]
 
+SOLID_FRACTION_COLUMNS = [f"{species}_solid_frac" for species in SILICATE_COLUMNS]
+
 METAL_COLUMNS = [
     "Fe_metal",
     "Si_metal",
@@ -90,6 +118,73 @@ METAL_COLUMNS = [
     "O_metal",
     "H_metal",
     "S_metal",
+]
+
+PARTIAL_MELT_VARIABLE_COLUMNS_WITH_REFRACTORY = (
+    *SILICATE_COLUMNS,
+    *GAS_COLUMNS,
+    "Moles_atm",
+    "Moles_silicate",
+)
+
+PARTIAL_MELT_VARIABLE_COLUMNS_NO_REFRACTORY = (
+    *SILICATE_COLUMNS,
+    *NONREFRACTORY_GAS_COLUMNS,
+    "Moles_atm",
+    "Moles_silicate",
+)
+
+# Standard plotting-friendly results.dat schema for partial-melt workflows.
+PARTIAL_MELT_RESULTS_COLUMNS = [
+    "#index",
+    "Planetmass",
+    "T_AMOI",
+    "T_SME",
+    "Pstd",
+    "P_SME",
+    "CO_ratio",
+    "fWater",
+    "HHe_ratio",
+    "MgSi_ratio",
+    "FeSi_ratio",
+    "itarSH_ratio",
+    "deltaT",
+    "f_melt",
+    "volatile_retention_in_solid",
+    "M_frozen_core",
+    "M_frozen_solid",
+    "nSi",
+    "nMg",
+    "nO",
+    "nFe",
+    "nH",
+    "nNa",
+    "nC",
+    "nS",
+    "nN",
+    *SILICATE_COLUMNS,
+    *GAS_COLUMNS,
+    *METAL_COLUMNS,
+    "Moles_atm",
+    "Moles_silicate",
+    "Moles_metal",
+    "chi^2",
+    "bulkCO",
+    "bulkOSi",
+    "bulkOH",
+    "Matm",
+    "upperCO",
+    "FeSi_bulk",
+    "MgSi_bulk",
+    *[f"{column}_massfrac" for column in METAL_COLUMNS],
+    "MgSiO3_silicate_massfrac",
+    "MgO_silicate_massfrac",
+    "SiO2_silicate_massfrac",
+    "FeO_silicate_massfrac",
+    "FeSiO3_silicate_massfrac",
+    "H2_silicate_massfrac",
+    "H2_gas_massfrac",
+    *SOLID_FRACTION_COLUMNS,
 ]
 
 # Clean species labels for sulfur-containing species (LaTeX formatted)
@@ -324,3 +419,20 @@ ELEMENT_SPECIES = {
         ('N2_silicate', 2),
     ],
 }
+
+ELEMENTS = tuple(ELEMENT_SPECIES.keys())
+
+VOLATILE_SILICATE_COLUMNS = {
+    "H2_silicate",
+    "H2O_silicate",
+    "CO_silicate",
+    "CO2_silicate",
+    "N2_silicate",
+}
+
+NONVOLATILE_SOLID_FRACTION_COLUMNS = [
+    f"{species}_solid_frac" for species in SILICATE_COLUMNS if species not in VOLATILE_SILICATE_COLUMNS
+]
+NONVOLATILE_SOLID_LINE_ORDER = [
+    f"{species}_solid_frac" for species in SILICATE_LINE_ORDER if species not in VOLATILE_SILICATE_COLUMNS
+]
