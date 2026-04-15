@@ -137,21 +137,39 @@ def plot_sulfur_phase_fractions_vs_fO2(df, path):
     frac_atm = np.nan_to_num(fractions["atm"], nan=0.0)
 
     x_min, x_max = np.nanmin(delta_iw), np.nanmax(delta_iw)
+    single_point = len(delta_iw) == 1 or np.isclose(x_min, x_max)
+    if single_point:
+        x_pad = max(0.5, abs(float(x_min)) * 0.05)
+        x_limits = (float(x_min) - x_pad, float(x_max) + x_pad)
+    else:
+        x_limits = (x_min, x_max)
     delta_iw_label = axis_label("delta_IW")
     os.makedirs(os.path.join(path, "plots"), exist_ok=True)
 
     # Linear stacked plot — metal on bottom, silicate in middle, atm on top
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.stackplot(
-        delta_iw, frac_met, frac_sil, frac_atm,
-        labels=[LATEX_PLOT["phase_metal"], LATEX_PLOT["phase_silicate"], LATEX_PLOT["phase_atm"]],
-        colors=[
-            plot_constants.PHASE_COLORS.get("metal", "#000000"),
-            plot_constants.PHASE_COLORS.get("silicate", "#000000"),
-            plot_constants.PHASE_COLORS.get("atm", "#000000"),
-        ],
-    )
-    ax.set_xlim(x_min, x_max)
+    if single_point:
+        x0 = float(delta_iw[0])
+        width = (x_limits[1] - x_limits[0]) * 0.25
+        bottom = 0.0
+        for frac, label, color in (
+            (float(frac_met[0]), LATEX_PLOT["phase_metal"], plot_constants.PHASE_COLORS.get("metal", "#000000")),
+            (float(frac_sil[0]), LATEX_PLOT["phase_silicate"], plot_constants.PHASE_COLORS.get("silicate", "#000000")),
+            (float(frac_atm[0]), LATEX_PLOT["phase_atm"], plot_constants.PHASE_COLORS.get("atm", "#000000")),
+        ):
+            ax.bar([x0], [frac], bottom=bottom, width=width, label=label, color=color)
+            bottom += frac
+    else:
+        ax.stackplot(
+            delta_iw, frac_met, frac_sil, frac_atm,
+            labels=[LATEX_PLOT["phase_metal"], LATEX_PLOT["phase_silicate"], LATEX_PLOT["phase_atm"]],
+            colors=[
+                plot_constants.PHASE_COLORS.get("metal", "#000000"),
+                plot_constants.PHASE_COLORS.get("silicate", "#000000"),
+                plot_constants.PHASE_COLORS.get("atm", "#000000"),
+            ],
+        )
+    ax.set_xlim(*x_limits)
     ax.set_ylim(0.0, 1.0)
     ax.set_xlabel(delta_iw_label)
     ax.set_ylabel(LATEX_PLOT["sulfur_mass_fraction"])
@@ -168,10 +186,11 @@ def plot_sulfur_phase_fractions_vs_fO2(df, path):
 
     # Non-stacked line plot (log y)
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(delta_iw, frac_atm, label=PHASE_LEGEND_LABEL["atm"], color=plot_constants.PHASE_COLORS.get("atm", "#000000"))
-    ax.plot(delta_iw, frac_sil, label=PHASE_LEGEND_LABEL["silicate"], color=plot_constants.PHASE_COLORS.get("silicate", "#000000"))
-    ax.plot(delta_iw, frac_met, label=PHASE_LEGEND_LABEL["metal"], color=plot_constants.PHASE_COLORS.get("metal", "#000000"))
-    ax.set_xlim(x_min, x_max)
+    marker_style = "o-" if single_point else "-"
+    ax.plot(delta_iw, frac_atm, marker_style, label=PHASE_LEGEND_LABEL["atm"], color=plot_constants.PHASE_COLORS.get("atm", "#000000"))
+    ax.plot(delta_iw, frac_sil, marker_style, label=PHASE_LEGEND_LABEL["silicate"], color=plot_constants.PHASE_COLORS.get("silicate", "#000000"))
+    ax.plot(delta_iw, frac_met, marker_style, label=PHASE_LEGEND_LABEL["metal"], color=plot_constants.PHASE_COLORS.get("metal", "#000000"))
+    ax.set_xlim(*x_limits)
     ax.set_yscale("log")
     ax.set_ylim(1e-8, 1.0)
     ax.set_xlabel(delta_iw_label)

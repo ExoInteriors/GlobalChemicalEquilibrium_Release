@@ -279,10 +279,10 @@ def axis_plot_dir(path, axis_key):
 def save_figure(
     fig,
     *,
-    output_path: Path | None = None,
+    output_path = None,
     path=None,
     directory=None,
-    filename: str | None = None,
+    filename = None,
     dpi=150,
     bbox_inches="tight",
 ) -> None:
