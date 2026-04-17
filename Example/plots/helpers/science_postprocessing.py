@@ -361,6 +361,31 @@ def element_gce_mass_scores(gce_row, element_cols):
     return out
 
 
+def gce_element_weight_fraction_scores(gce_row, element_cols):
+    """Element weight fractions at GCE; matches the y-axis of ``compute_element_weight_fractions`` (per-row normalization)."""
+    masses = element_gce_mass_scores(gce_row, element_cols)
+    if not masses or not element_cols:
+        return {}
+    total = float(sum(masses.get(col, 0.0) for col in element_cols))
+    if total <= 0.0:
+        return {col: 0.0 for col in element_cols}
+    return {col: float(masses.get(col, 0.0)) / total for col in element_cols}
+
+
+def gce_phase_mole_fraction_scores(gce_row):
+    """Bulk phase mole fractions at GCE; keys ``metal``, ``silicate``, ``atm`` (``compute_phase_mole_fractions`` y-axis)."""
+    if gce_row is None:
+        return {}
+    row = pd.Series(gce_row) if not isinstance(gce_row, pd.Series) else gce_row
+    m_atm = float(np.nan_to_num(row.get("Moles_atm", 0.0), nan=0.0, posinf=0.0, neginf=0.0))
+    m_sil = float(np.nan_to_num(row.get("Moles_silicate", 0.0), nan=0.0, posinf=0.0, neginf=0.0))
+    m_met = float(np.nan_to_num(row.get("Moles_metal", 0.0), nan=0.0, posinf=0.0, neginf=0.0))
+    tot = m_atm + m_sil + m_met
+    if tot <= 0.0:
+        return {}
+    return {"atm": m_atm / tot, "silicate": m_sil / tot, "metal": m_met / tot}
+
+
 def silicate_species_gce_masses(gce_row, columns):
     """Absolute silicate species mass in the melt at the saved GCE state; ``*_solid_frac`` columns are 0."""
     if gce_row is None or not columns:
@@ -378,6 +403,19 @@ def silicate_species_gce_masses(gce_row, columns):
             continue
         frac = float(np.nan_to_num(gce_row.get(col, np.nan), nan=0.0))
         out[col] = moles_melt * frac * mu.get(col, 0.0)
+    return out
+
+
+def gce_atmosphere_partial_pressure_scores(gce_row, columns):
+    """Per-gas partial pressures (bar) at GCE: mole fraction × Pstd; matches ``prepare_atmosphere_partial_pressures``."""
+    if gce_row is None or not columns:
+        return {}
+    row = pd.Series(gce_row) if not isinstance(gce_row, pd.Series) else gce_row
+    p_total = float(np.nan_to_num(row.get("Pstd", 0.0), nan=0.0, posinf=0.0, neginf=0.0))
+    out = {}
+    for col in columns:
+        x = float(np.nan_to_num(row.get(col, 0.0), nan=0.0, posinf=0.0, neginf=0.0))
+        out[col] = x * p_total
     return out
 
 

@@ -348,6 +348,7 @@ def plot_silicate_volatile_refractory(df, gce_df, path):
         {"label": "Melt", "column": "melt_refractory_frac", "color": "#c44e52", "linewidth": 2.2, "linestyle": "-"},
         {"label": "Frozen solid", "column": "solid_refractory_frac", "color": "#4c72b0", "linewidth": 2.2, "linestyle": "--"},
     ]
+    marker_jobs = []
     for spec in series:
         y_vals = plot_df[spec["column"]].to_numpy(dtype=float)
         ax.plot(
@@ -362,10 +363,22 @@ def plot_silicate_volatile_refractory(df, gce_df, path):
         )
         gce_y_value = np.nan if gce_data is None else pd.to_numeric(gce_data.get(spec["column"]), errors="coerce")
         partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, y_vals)
+        marker_jobs.append(
+            (
+                float(gce_y_value) if np.isfinite(gce_y_value) else float("-inf"),
+                spec["color"],
+                partial_melt_x,
+                partial_melt_y,
+                np.isfinite(gce_y_value),
+            )
+        )
+    marker_jobs.sort(key=lambda t: t[0], reverse=True)
+    for sort_key, color, partial_melt_x, partial_melt_y, has_gce in marker_jobs:
+        gce_y_axis = None if not has_gce else float(sort_key)
         plot_partial_melt_markers(
             ax,
-            color=spec["color"],
-            gce_y_axis=None if not np.isfinite(gce_y_value) else float(gce_y_value),
+            color=color,
+            gce_y_axis=gce_y_axis,
             partial_melt_x_axis=partial_melt_x,
             partial_melt_y_axis=partial_melt_y,
         )

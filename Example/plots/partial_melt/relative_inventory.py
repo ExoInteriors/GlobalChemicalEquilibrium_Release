@@ -3,6 +3,7 @@ So solid increases and mantle decreases. Similar to @species_phase_fraction.py b
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from Example.plots.partial_melt.species_phase_fraction import (
     plot_partial_melt_phase_fraction_panel,
@@ -18,7 +19,6 @@ from Example.plots.helpers.plot_constants import (
     SULFUR_SPECIES_LABELS,
     format_species_label,
 )
-from Example.plots.helpers.science_postprocessing import silicate_species_gce_masses
 from Example.plots.helpers.plotting_helpers import apply_partial_melt_percent_axis, axis_label, axis_series, \
     first_partial_melt_point, get_partial_melt_plot_context, load_atomic_weights, make_panel_title, \
     plot_partial_melt_markers, save_axis_figure, set_axis_x_limits, sort_multiseries_gce_or_mean
@@ -93,6 +93,28 @@ def _prepare_relative_inventory_series(subset, columns, axis_key):
     return x_vals[order], relative[order], labels
 
 
+def _gce_relative_inventory_scores(gce_row, columns, baseline_map, mu):
+    """GCE values on the relative-inventory y-axis (ratio to initial silicate species mass)."""
+    if gce_row is None or not columns:
+        return {}
+    row = pd.Series(gce_row) if not isinstance(gce_row, pd.Series) else gce_row
+    out = {}
+    for col in columns:
+        base_species = col[:-len("_solid_frac")] if col.endswith("_solid_frac") else col
+        baseline_mass = baseline_map.get(base_species, np.nan)
+        if not (np.isfinite(baseline_mass) and baseline_mass > 0.0):
+            out[col] = 0.0
+            continue
+        if col.endswith("_solid_frac"):
+            out[col] = 0.0
+            continue
+        phase_moles_key = "Moles_atm" if col.endswith("_gas") else "Moles_silicate"
+        phase_moles = float(np.nan_to_num(row.get(phase_moles_key, 0.0), nan=0.0))
+        species_fraction = float(np.nan_to_num(row.get(base_species, 0.0), nan=0.0))
+        out[col] = (species_fraction * phase_moles * float(mu.get(base_species, 0.0))) / baseline_mass
+    return out
+
+
 def _plot_partial_melt_relative_inventory_panel(ax, subset, columns, phase_name, axis_key, panel_title=None, show_ylabel=True, zero_floor=None, gce_row=None):
     """Draw species inventories normalized to the initial silicate inventory."""
     title = f"{phase_name} -- {panel_title}" if panel_title else phase_name
@@ -104,40 +126,31 @@ def _plot_partial_melt_relative_inventory_panel(ax, subset, columns, phase_name,
         return True
 
     x_vals, relative, labels = prepared
+    baseline, baseline_species = _initial_silicate_species_masses(subset)
+    baseline_map = {species: baseline[idx] for idx, species in enumerate(baseline_species)} if baseline.size else {}
+    mu = load_atomic_weights()
     use_gce_sort = axis_key == "f_melt" and gce_row is not None
-    pre_values = silicate_species_gce_masses(gce_row, columns) if use_gce_sort else None
+    pre_values = _gce_relative_inventory_scores(gce_row, columns, baseline_map, mu) if use_gce_sort else None
     sorted_indices, sorted_labels, colors = sort_multiseries_gce_or_mean(
         relative, labels, columns, pre_values, mask_nonpositive=True
     )
     sorted_relative = relative[:, sorted_indices]
-    baseline, baseline_species = _initial_silicate_species_masses(subset)
-    baseline_map = {species: baseline[idx] for idx, species in enumerate(baseline_species)} if baseline.size else {}
-    mu = load_atomic_weights()
 
     for idx, label in enumerate(sorted_labels):
         series = np.where(sorted_relative[:, idx] <= 0, zero_floor if zero_floor is not None else np.nan, sorted_relative[:, idx])
         linewidth = 3.5 if label in SULFUR_SPECIES_LABELS else 2
         ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth)
-        if axis_key == "f_melt" and gce_row is not None:
+        if axis_key == "f_melt" and pre_values is not None:
             column = columns[sorted_indices[idx]]
-            base_species = column[:-len("_solid_frac")] if column.endswith("_solid_frac") else column
-            baseline_mass = baseline_map.get(base_species, np.nan)
-            if np.isfinite(baseline_mass) and baseline_mass > 0.0:
-                if column.endswith("_solid_frac"):
-                    gce_y_value = 0.0
-                else:
-                    phase_moles_key = "Moles_atm" if column.endswith("_gas") else "Moles_silicate"
-                    phase_moles = float(np.nan_to_num(gce_row.get(phase_moles_key, 0.0), nan=0.0))
-                    species_fraction = float(np.nan_to_num(gce_row.get(base_species, 0.0), nan=0.0))
-                    gce_y_value = (species_fraction * phase_moles * mu.get(base_species, 0.0)) / baseline_mass
-                partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, series)
-                plot_partial_melt_markers(
-                    ax,
-                    color=colors[idx],
-                    gce_y_axis=None if (not np.isfinite(gce_y_value) or gce_y_value <= 0.0) else float(gce_y_value),
-                    partial_melt_x_axis=partial_melt_x,
-                    partial_melt_y_axis=partial_melt_y,
-                )
+            gce_y_value = float(pre_values.get(column, np.nan))
+            partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, series)
+            plot_partial_melt_markers(
+                ax,
+                color=colors[idx],
+                gce_y_axis=None if (not np.isfinite(gce_y_value) or gce_y_value <= 0.0) else float(gce_y_value),
+                partial_melt_x_axis=partial_melt_x,
+                partial_melt_y_axis=partial_melt_y,
+            )
 
     if len(x_vals) == 1:
         if axis_key == "f_melt":

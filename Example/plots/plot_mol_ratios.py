@@ -31,7 +31,8 @@ from .helpers.science_postprocessing import (
     compute_atm_co_ratio,
     compute_element_weight_fractions,
     compute_phase_mole_fractions,
-    element_gce_mass_scores,
+    gce_element_weight_fraction_scores,
+    gce_phase_mole_fraction_scores,
 )
 from tools.constants import repo_root
 
@@ -153,7 +154,7 @@ def compare_co_ratio(carbon_dir: Path, sulfur_dir: Path, axis_key: str = "Matm_M
     save_figure(fig, output_path=output_path or (repo_root / "results" / "co_ratio_comparison.png"))
 
 
-def _draw_phase_subplot(ax, subset, axis_key):
+def _draw_phase_subplot(ax, subset, axis_key, gce_row=None):
     """Draw a stacked phase mole fraction plot on a single axes."""
     prepared = compute_phase_mole_fractions(subset, axis_key)
     if prepared is None:
@@ -161,17 +162,26 @@ def _draw_phase_subplot(ax, subset, axis_key):
     x_vals, frac_atm, frac_sil, frac_met = prepared
 
     phase_series = [
-        (LATEX_PLOT["phase_metal"], PHASE_COLORS["metal"], frac_met),
-        (LATEX_PLOT["phase_silicate"], PHASE_COLORS["silicate"], frac_sil),
-        (LATEX_PLOT["phase_atm"], PHASE_COLORS["atm"], frac_atm),
+        ("metal", LATEX_PLOT["phase_metal"], PHASE_COLORS["metal"], frac_met),
+        ("silicate", LATEX_PLOT["phase_silicate"], PHASE_COLORS["silicate"], frac_sil),
+        ("atm", LATEX_PLOT["phase_atm"], PHASE_COLORS["atm"], frac_atm),
     ]
-    plotted_phases = [(label, color, values) for label, color, values in phase_series if np.any(values > 0)]
+    plotted_phases = [
+        (phase_key, label, color, values)
+        for phase_key, label, color, values in phase_series
+        if np.any(values > 0)
+    ]
     if not plotted_phases:
         return False
 
+    if axis_key == "f_melt" and gce_row is not None:
+        gce_pf = gce_phase_mole_fraction_scores(gce_row)
+        if gce_pf:
+            plotted_phases.sort(key=lambda item: gce_pf.get(item[0], 0.0), reverse=True)
+
     if len(x_vals) == 1:
         bottom = 0.0
-        for label, color, values in plotted_phases:
+        for _phase_key, label, color, values in plotted_phases:
             height = float(values[0])
             ax.bar([0.0], [height], bottom=bottom, width=0.6, label=label, color=color)
             bottom += height
@@ -184,9 +194,9 @@ def _draw_phase_subplot(ax, subset, axis_key):
     else:
         ax.stackplot(
             x_vals,
-            *[values for _, _, values in plotted_phases],
-            labels=[label for label, _, _ in plotted_phases],
-            colors=[color for _, color, _ in plotted_phases],
+            *[values for _, _, _, values in plotted_phases],
+            labels=[label for _, label, _, _ in plotted_phases],
+            colors=[color for _, _, color, _ in plotted_phases],
         )
         if axis_key == "f_melt":
             apply_partial_melt_axis(ax)
@@ -206,10 +216,15 @@ def plot_phase_mole_fractions(df, path, axis_key):
     """Stack metal/silicate/atm phase mole fractions along the chosen axis."""
     if df is None or len(df) == 0:
         return
+    gce_row = get_partial_melt_plot_context(path, axis_key)
+
+    def draw_phase(ax, subset, axis_key_local):
+        return _draw_phase_subplot(ax, subset, axis_key_local, gce_row=gce_row)
+
     plot_panels_or_single(
         df,
         axis_key,
-        _draw_phase_subplot,
+        draw_phase,
         lambda ak, v: make_panel_title(ak, v, LATEX_PLOT["phase_mole_distribution"]),
         path,
         "phase_mole_fractions",
@@ -230,9 +245,9 @@ def _plot_element_panel(ax, subset, axis_key, element_cols, gce_row=None):
 
     if use_gce:
         plot_labels = [element_cols[i][1:] for i in range(len(element_cols))]
-        mass_scores = element_gce_mass_scores(gce_row, element_cols)
+        gce_axis_scores = gce_element_weight_fraction_scores(gce_row, element_cols)
         si, labels, colors = sort_multiseries_gce_or_mean(
-            frac_matrix, plot_labels, element_cols, mass_scores, mask_nonpositive=True
+            frac_matrix, plot_labels, element_cols, gce_axis_scores, mask_nonpositive=True
         )
         frac_matrix = frac_matrix[:, si]
     else:

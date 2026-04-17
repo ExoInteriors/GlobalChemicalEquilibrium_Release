@@ -7,8 +7,8 @@ import pandas as pd
 from Example.plots.helpers.plot_constants import EPSILON, GAS_LINE_ORDER, \
                             NONVOLATILE_SOLID_LINE_ORDER, GAS_COLUMNS, LATEX_PLOT, PHASE_COLORS, PLOT_RCPARAMS, \
                             SILICATE_LINE_ORDER, SULFUR_SPECIES_LABELS
-from Example.plots.helpers.science_postprocessing import compute_phase_mass_fractions, get_f_solid_series, \
-                            prepare_atmosphere_partial_pressures, prepare_phase_fractions, silicate_species_gce_masses
+from Example.plots.helpers.science_postprocessing import compute_phase_mass_fractions, gce_atmosphere_partial_pressure_scores, \
+                            get_f_solid_series, prepare_atmosphere_partial_pressures, prepare_phase_fractions
 from Example.plots.helpers.plotting_helpers import apply_partial_melt_axis, axis_label, axis_panel_subsets, axis_series, \
                             draw_panel_or_single_figure, first_partial_melt_point, get_partial_melt_plot_context, \
                             load_atomic_weights, make_panel_title, mass_arrays, plot_partial_melt_markers, \
@@ -25,23 +25,6 @@ def _ensure_panel_axes_visible(ax):
     ax.spines["left"].set_visible(True)
     ax.tick_params(axis="x", which="both", bottom=True, labelbottom=True)
     ax.tick_params(axis="y", which="both", left=True, labelleft=True)
-
-def _gce_species_values(gce_row, columns, atmosphere_mode):
-    if gce_row is None:
-        return {}
-    scale = float(pd.to_numeric(gce_row.get("Pstd", 0.0), errors="coerce")) if atmosphere_mode else 1.0
-    return {
-        column: float(pd.to_numeric(gce_row.get(column, np.nan), errors="coerce")) * scale
-        for column in columns
-    }
-
-
-def _species_gce_y(gce_row, column, atmosphere_mode):
-    """Scalar GCE abundance for one species column (gas uses Pstd scaling)."""
-    if gce_row is None:
-        return np.nan
-    return float(_gce_species_values(gce_row, [column], atmosphere_mode).get(column, np.nan))
-
 
 def _gce_melt_and_atm_mass_fractions(gce_row):
     """Return (silicate melt mass fraction, atm mass fraction) from the GCE row."""
@@ -68,21 +51,19 @@ def _phase_gce_y(gce_row, phase_name):
     return phase_values.get(phase_name, np.nan)
 
 
-def _draw_bulk_phase_gce_partial_melt_markers(ax, x_vals, frac_silicate_or_melt, frac_atm, gce_melt, gce_atm):
-    """Draw the GCE marker and first partial-melt marker for silicate and atmosphere bulk mass fractions."""
-    for gce_y_value, color, y_series in (
-        (gce_melt, PHASE_COLORS["silicate"], frac_silicate_or_melt),
-        (gce_atm, PHASE_COLORS["atm"], frac_atm),
-    ):
-        if np.isfinite(gce_y_value):
-            partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, y_series)
-            plot_partial_melt_markers(
-                ax,
-                color=color,
-                gce_y_axis=gce_y_value,
-                partial_melt_x_axis=partial_melt_x,
-                partial_melt_y_axis=partial_melt_y,
-            )
+def _draw_bulk_phase_gce_partial_melt_markers(ax, x_vals, phase_markers):
+    """Draw GCE markers for bulk phase mass fractions, ordered by descending GCE y (plot y-axis)."""
+    ordered = [(float(gy), c, ys) for gy, c, ys in phase_markers if np.isfinite(gy) and gy > 0.0]
+    ordered.sort(key=lambda t: t[0], reverse=True)
+    for gce_y_value, color, y_series in ordered:
+        partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, y_series)
+        plot_partial_melt_markers(
+            ax,
+            color=color,
+            gce_y_axis=gce_y_value,
+            partial_melt_x_axis=partial_melt_x,
+            partial_melt_y_axis=partial_melt_y,
+        )
 
 
 def plot_partial_melt_species_line_panel(ax, subset, columns, phase_name, axis_key, panel_title=None, show_ylabel=True, zero_floor=None, gce_row=None):
@@ -107,11 +88,15 @@ def plot_partial_melt_species_line_panel(ax, subset, columns, phase_name, axis_k
     use_gce_sort = axis_key == "f_melt" and gce_row is not None
     pre_values = None
     if use_gce_sort:
-        pre_values = (
-            _gce_species_values(gce_row, columns, atmosphere_mode=True)
-            if atmosphere_mode
-            else silicate_species_gce_masses(gce_row, columns)
-        )
+        if atmosphere_mode:
+            pre_values = gce_atmosphere_partial_pressure_scores(gce_row, columns)
+        else:
+            gce_prepared = prepare_phase_fractions(pd.DataFrame([gce_row]), columns, "f_melt")
+            if gce_prepared is None:
+                pre_values = {col: 0.0 for col in columns}
+            else:
+                _, gce_fracs, _ = gce_prepared
+                pre_values = {columns[i]: float(gce_fracs[0, i]) for i in range(len(columns))}
     sorted_indices, sorted_labels, colors = sort_multiseries_gce_or_mean(
         fractions, labels, columns, pre_values, mask_nonpositive=True
     )
@@ -130,7 +115,7 @@ def plot_partial_melt_species_line_panel(ax, subset, columns, phase_name, axis_k
         )
         if axis_key == "f_melt":
             column = columns[sorted_indices[idx]]
-            gce_y_value = _species_gce_y(gce_row, column, atmosphere_mode)
+            gce_y_value = float(pre_values.get(column, np.nan)) if pre_values is not None else np.nan
             partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, series)
             plot_partial_melt_markers(
                 ax,
@@ -190,6 +175,7 @@ def plot_partial_melt_phase_fraction_panel(ax, subset, axis_key, panel_title=Non
 
         valid_mask = np.isfinite(x_raw) & np.isfinite(total_mass) & (total_mass > 0)
         order = np.argsort(x_raw[valid_mask])
+        x_vals = np.asarray(x_raw[valid_mask][order], dtype=float)
         grams_atm = grams_atm[valid_mask][order]
         grams_melt = grams_melt[valid_mask][order]
         grams_solid = grams_solid[valid_mask][order]
@@ -198,29 +184,48 @@ def plot_partial_melt_phase_fraction_panel(ax, subset, axis_key, panel_title=Non
         frac_melt = np.nan_to_num(grams_melt / total_safe, nan=0.0, posinf=0.0, neginf=0.0)
         frac_solid = np.nan_to_num(grams_solid / total_safe, nan=0.0, posinf=0.0, neginf=0.0)
 
-        ax.plot(x_vals, frac_melt, label="Melt", color=PHASE_COLORS["silicate"])
-        ax.plot(x_vals, frac_solid, label="Solid", color="gray")
-        ax.plot(x_vals, frac_atm, label=LATEX_PLOT["legend_gas"], color=PHASE_COLORS["atm"])
+        line_specs = [
+            (_phase_gce_y(gce_row, "melt"), "Melt", PHASE_COLORS["silicate"], frac_melt),
+            (_phase_gce_y(gce_row, "solid"), "Solid", "gray", frac_solid),
+            (_phase_gce_y(gce_row, "atm"), LATEX_PLOT["legend_gas"], PHASE_COLORS["atm"], frac_atm),
+        ]
+        if axis_key == "f_melt" and gce_row is not None:
+            line_specs.sort(
+                key=lambda s: float(s[0]) if np.isfinite(s[0]) else float("-inf"),
+                reverse=True,
+            )
+        for _gcy, lbl, col, ys in line_specs:
+            ax.plot(x_vals, ys, label=lbl, color=col)
         if axis_key == "f_melt":
             _draw_bulk_phase_gce_partial_melt_markers(
                 ax,
                 x_vals,
-                frac_melt,
-                frac_atm,
-                _phase_gce_y(gce_row, "melt"),
-                _phase_gce_y(gce_row, "atm"),
+                [
+                    (_phase_gce_y(gce_row, "melt"), PHASE_COLORS["silicate"], frac_melt),
+                    (_phase_gce_y(gce_row, "solid"), "gray", frac_solid),
+                    (_phase_gce_y(gce_row, "atm"), PHASE_COLORS["atm"], frac_atm),
+                ],
             )
     else:
-        ax.plot(x_vals, frac_silicate, label="Melt", color=PHASE_COLORS["silicate"])
-        ax.plot(x_vals, frac_atm, label=LATEX_PLOT["legend_gas"], color=PHASE_COLORS["atm"])
+        line_specs = [
+            (_phase_gce_y(gce_row, "melt"), "Melt", PHASE_COLORS["silicate"], frac_silicate),
+            (_phase_gce_y(gce_row, "atm"), LATEX_PLOT["legend_gas"], PHASE_COLORS["atm"], frac_atm),
+        ]
+        if axis_key == "f_melt" and gce_row is not None:
+            line_specs.sort(
+                key=lambda s: float(s[0]) if np.isfinite(s[0]) else float("-inf"),
+                reverse=True,
+            )
+        for _gcy, lbl, col, ys in line_specs:
+            ax.plot(x_vals, ys, label=lbl, color=col)
         if axis_key == "f_melt":
             _draw_bulk_phase_gce_partial_melt_markers(
                 ax,
                 x_vals,
-                frac_silicate,
-                frac_atm,
-                _phase_gce_y(gce_row, "melt"),
-                _phase_gce_y(gce_row, "atm"),
+                [
+                    (_phase_gce_y(gce_row, "melt"), PHASE_COLORS["silicate"], frac_silicate),
+                    (_phase_gce_y(gce_row, "atm"), PHASE_COLORS["atm"], frac_atm),
+                ],
             )
 
     if len(x_vals) == 1:
@@ -262,11 +267,7 @@ def _plot_partial_melt_atmosphere_partial_pressure_panel(ax, subset, axis_key, p
 
     x_vals, pressures, labels = prepared
     use_gce_sort = axis_key == "f_melt" and gce_row is not None
-    pre_values = (
-        _gce_species_values(gce_row, GAS_COLUMNS, atmosphere_mode=True)
-        if use_gce_sort
-        else None
-    )
+    pre_values = gce_atmosphere_partial_pressure_scores(gce_row, GAS_COLUMNS) if use_gce_sort else None
     sorted_indices, sorted_labels, colors = sort_multiseries_gce_or_mean(
         pressures, labels, GAS_COLUMNS, pre_values, mask_nonpositive=True
     )
@@ -278,7 +279,7 @@ def _plot_partial_melt_atmosphere_partial_pressure_panel(ax, subset, axis_key, p
         ax.plot(x_vals, series, label=label, color=colors[idx], linewidth=linewidth)
         if axis_key == "f_melt":
             column = GAS_COLUMNS[sorted_indices[idx]]
-            gce_y_value = _species_gce_y(gce_row, column, atmosphere_mode=True)
+            gce_y_value = float(pre_values.get(column, np.nan)) if pre_values is not None else np.nan
             partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, series)
             plot_partial_melt_markers(
                 ax,
