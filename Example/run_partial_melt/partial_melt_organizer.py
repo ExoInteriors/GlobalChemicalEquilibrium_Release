@@ -1,5 +1,5 @@
 '''
-The grand commander that organizes each step of the partial melt workflow.
+The workflow organizer for each step of the partial melt workflow.
 
 If a GCE run hasn't been run yet, it will run it first.
 Then it will freeze the core and split the silicate into melt and solid.
@@ -34,11 +34,11 @@ from Example.run_partial_melt.partial_melt_science import add_frozen_core_column
 from Example.run_partial_melt.partial_melt_plot_and_filter_results import add_solid_fraction_columns, \
                                         build_partial_melt_step1_results_row, normalize_partial_melt_results_df, \
                                         write_partial_melt_step_metadata
-from Example.runAll import resolve_unique_run_dir, run_all
-from Example.gce_orchestrator import GCEParams
+from Example.runAll import current_date_tag, resolve_run_location, resolve_unique_run_dir, run_all
+from Example.gce_organizer import GCEParams
 
 
-# Partial Melt Parameters that decide how the run is orchestrated.
+# Partial Melt Parameters that decide how the run is organized.
 @dataclass
 class PartialMeltParams:
     # parameters to run full GCE with
@@ -56,7 +56,7 @@ class PartialMeltParams:
     rerun_full_melt: bool = False # if True, will rerun the full melt to get the initial state
 
 
-class PartialMeltOrchestrator:
+class PartialMeltOrganizer:
     def __init__(self, *, params, run_name: str, just_plots: bool = False, plot_results_dir=None, axis_list=None, 
                 full_melt_results_dir=None, version_full_melt: str = "Sulfur_Nitrogen_Version") -> None:
         self.params = params
@@ -189,9 +189,14 @@ class PartialMeltOrchestrator:
         if self.params.freeze_solid and self.params.f_melt_stop <= 1.0e-12 and schedule[-1] != 0.0:
             schedule.append(0.0)
 
-        date_tag = time.strftime("%b%d").lower()
-        results_date_dir = self.base_dir / "results_partial" / date_tag
-        chain_root = Path(resolve_unique_run_dir(results_date_dir, self.run_name, suffix="_partial_melt"))
+        date_tag = current_date_tag()
+        results_root, run_label = resolve_run_location(
+            self.base_dir,
+            self.run_name,
+            default_folder="results_partial",
+        )
+        results_date_dir = results_root / date_tag
+        chain_root = Path(resolve_unique_run_dir(results_date_dir, run_label, suffix="_partial_melt"))
         chain_root.mkdir(parents=True, exist_ok=True)
 
         reference_record = {

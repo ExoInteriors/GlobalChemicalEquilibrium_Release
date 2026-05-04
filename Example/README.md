@@ -33,6 +33,9 @@ Before running, edit [`run_gce.py`](run_gce.py). Most runs only need:
 - `version`: the solver directory, such as `Sulfur_Version`, `Carbon_Version`,
   or `Sulfur_Nitrogen_Version`.
 
+Plain run names write under `results/YYYYMMDD/`. To use another location, put
+it in `run_name`, such as `run_name="my_results/my_run"`.
+
 For detailed parameter descriptions, see [`PARAMS.md`](PARAMS.md). For a visual
 overview of the pipeline, see [`WORKFLOW.md`](WORKFLOW.md).
 
@@ -47,7 +50,7 @@ run_gce(
     params=GCEParams(...),
     version="Sulfur_Version",
     just_plots=True,
-    plot_results_dir="results/may04/my_run_sulfur",
+    plot_results_dir="results/20260504/my_run_sulfur",
 )
 ```
 
@@ -64,7 +67,7 @@ when it contains `Nitrogen`.
 
 - [`run_gce.py`](run_gce.py): public entry point for running or replotting a
   full GCE study.
-- [`gce_orchestrator.py`](gce_orchestrator.py): orchestration layer for build,
+- [`gce_organizer.py`](gce_organizer.py): organization layer for build,
   input generation, solving, result collection, and plotting.
 - [`PARAMS.md`](PARAMS.md): detailed guide to `run_gce(...)` controls and
   `GCEParams(...)` fields.

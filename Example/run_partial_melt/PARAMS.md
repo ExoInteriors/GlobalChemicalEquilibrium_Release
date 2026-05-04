@@ -3,7 +3,7 @@
 This guide describes the controls used by
 [`run_partial_melt.py`](run_partial_melt.py). The user-facing science settings
 live in `PartialMeltParams`, which is defined in
-[`partial_melt_orchestrator.py`](partial_melt_orchestrator.py).
+[`partial_melt_organizer.py`](partial_melt_organizer.py).
 
 ## Typical Edit Pattern
 
@@ -33,6 +33,15 @@ Name for the partial-melt chain. New results are written under:
 results_partial/<date>/<run_name>_partial_melt/
 ```
 
+The `<date>` folder is numeric `YYYYMMDD`. If `run_name` includes a `/`, the
+path before the final `/` is used as the results location and the final path
+part is used as the run label:
+
+```python
+run_name="my_partial_results/test"       # my_partial_results/YYYYMMDD/test_partial_melt/
+run_name="/path/to/results_partial/test" # /path/to/results_partial/YYYYMMDD/test_partial_melt/
+```
+
 ### `just_plots`
 
 Set `False` for a normal run. Set `True` to skip solving and rebuild plots from
@@ -43,7 +52,7 @@ an existing partial-melt results directory.
 Existing partial-melt results directory used when `just_plots=True`. Example:
 
 ```python
-plot_results_dir="results_partial/apr02/test4_partial_melt"
+plot_results_dir="results_partial/20260504/test4_partial_melt"
 ```
 
 ### `full_melt_results_dir`

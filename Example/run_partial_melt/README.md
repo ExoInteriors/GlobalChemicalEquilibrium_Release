@@ -34,6 +34,9 @@ only need:
 - `full_melt_results_dir`: an existing full-melt run to use as the starting
   state, unless `params.rerun_full_melt=True`.
 
+Plain run names write under `results_partial/YYYYMMDD/`. To use another
+location, put it in `run_name`, such as `run_name="my_partial_results/my_run"`.
+
 For detailed parameter descriptions, see [`PARAMS.md`](PARAMS.md). For a visual
 overview of the run flow, see [`WORKFLOW.md`](WORKFLOW.md). For module roles and
 call order, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -48,7 +51,7 @@ run_partial_melt(
     params=PartialMeltParams(),
     run_name="unused_when_just_plotting",
     just_plots=True,
-    plot_results_dir="results_partial/apr02/test4_partial_melt",
+    plot_results_dir="results_partial/20260504/test4_partial_melt",
 )
 ```
 
@@ -56,7 +59,7 @@ run_partial_melt(
 
 - [`run_partial_melt.py`](run_partial_melt.py): public entry point for running
   or replotting a partial-melt chain.
-- [`partial_melt_orchestrator.py`](partial_melt_orchestrator.py): orchestration
+- [`partial_melt_organizer.py`](partial_melt_organizer.py): organization
   layer and home of `PartialMeltParams`.
 - [`partial_melt_science.py`](partial_melt_science.py): melt-fraction schedule,
   frozen-core bookkeeping, and melt/solid state transforms.

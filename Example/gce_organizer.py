@@ -101,7 +101,7 @@ class GCEParams:
         return cond
 
 
-class GCEOrchestrator:
+class GCEOrganizer:
     """Own the top-level GCE workflow from build check through plotting."""
 
     def __init__(

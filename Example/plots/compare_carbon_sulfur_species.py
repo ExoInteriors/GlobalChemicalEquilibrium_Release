@@ -536,9 +536,9 @@ def plot_carbon_sulfur_three_phase_vertical(carbon_dir: Path, sulfur_dir: Path, 
 def main():
     """Run comparison plots all together from this file."""
     # Hardcoded input directories - update these paths as needed
-    carbon_dir = Path(repo_root) / "results" / "feb11" / "water_carbon"
-    sulfur_dir = Path(repo_root) / "results" / "feb11" / "water_sulfur"
-    output_path = Path(repo_root) / "results" / "feb11" / "comparisons" 
+    carbon_dir = Path(repo_root) / "results" / "20260211" / "water_carbon"
+    sulfur_dir = Path(repo_root) / "results" / "20260211" / "water_sulfur"
+    output_path = Path(repo_root) / "results" / "20260211" / "comparisons"
     # plot_carbon_sulfur_comparison(carbon_dir, sulfur_dir, axis_key="Matm_Mplanet", 
     #                                     output_path=output_path / "water_all_phases.png")
     # plot_carbon_sulfur_comparison_no_atm(carbon_dir, sulfur_dir, axis_key="Matm_Mplanet", 

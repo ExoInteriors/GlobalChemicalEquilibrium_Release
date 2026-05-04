@@ -20,5 +20,5 @@ flowchart TB
     E --> F
     F --> G["Solve chained partial-melt steps"]
     G --> M
-    M --> P["Outputs: results_partial/<date>/<run_name>_partial_melt/"]
+    M --> P["Outputs: results_partial or run_name path/YYYYMMDD/<run_name>_partial_melt/"]
 ```

@@ -13,10 +13,10 @@ flowchart TB
     A["Set science and code parameters in run_gce.py"] --> B["Run:<b><br>PYTHONPATH=. python3 Example/run_gce.py"]
     B --> n1["just_plots = True?"]
     n1 -- Yes --> J["Uses existing results directory"]
-    n1 -- No --> D["Run GCEOrchestrator phases"]
+    n1 -- No --> D["Run GCEOrganizer phases"]
     D --> I["plot_results(): you can add your own plots here"]
     J --> I
-    I --> K@{ label: "Outputs go to GlobalChemicalEquilibrium/results/'date'/'run_name'/" }
+    I --> K@{ label: "Outputs go to results or run_name path/YYYYMMDD/'run_name'/" }
     style A fill:#FFF9C4
     style A1 fill:#FFF9C4
     style B fill:#C8E6C9,stroke-width:4px

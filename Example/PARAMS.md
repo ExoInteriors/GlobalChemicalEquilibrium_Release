@@ -50,8 +50,18 @@ results/<date>/<run_name>_<version-short>/
 ```
 
 For example, `run_name="testy"` with `version="Sulfur_Version"` produces a
-folder like `results/may04/testy_sulfur/`. If the folder already exists during a
-fresh run, the pipeline creates an incremented name such as `testy_2_sulfur`.
+folder like `results/20260504/testy_sulfur/`. If the folder already exists
+during a fresh run, the pipeline creates an incremented name such as
+`testy_2_sulfur`.
+
+The `<date>` folder is numeric `YYYYMMDD`. If `run_name` includes a `/`, the
+path before the final `/` is used as the results location and the final path
+part is used as the run label:
+
+```python
+run_name="my_results/testy"       # my_results/YYYYMMDD/testy_sulfur/
+run_name="/path/to/results/testy" # /path/to/results/YYYYMMDD/testy_sulfur/
+```
 
 ### `version`
 
@@ -80,7 +90,7 @@ Path to an existing results directory, relative to the repository root, used
 when replotting. Example:
 
 ```python
-plot_results_dir="results/may04/testy_sulfur"
+plot_results_dir="results/20260504/testy_sulfur"
 ```
 
 ### `only_sulfur_plots`

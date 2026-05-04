@@ -46,17 +46,56 @@ def resolve_unique_run_dir(results_date_dir, run_name, suffix=""):
             return str(candidate)
         index += 1
 
-def resolve_input_dir(base_dir, run_name, plot_results_dir, version, auto_increment=False):
+
+def current_date_tag(now=None):
+    """Return the date folder label used for new results."""
+    return (now or datetime.now()).strftime("%Y%m%d")
+
+
+def resolve_run_location(base_dir, run_name, default_folder="results"):
+    """Return `(results_root, run_label)` for a run name that may include a path."""
+    run_name_text = str(run_name)
+    if run_name_text.endswith("/"):
+        raise ValueError("run_name with a path must include a final run name.")
+    if "/" in run_name_text:
+        run_path = Path(run_name_text)
+        root = run_path.parent
+        run_label = run_path.name
+    else:
+        root = Path(default_folder)
+        run_label = run_name_text
+
+    if not root.is_absolute():
+        root = Path(base_dir) / root
+    return root, run_label
+
+
+def resolve_input_dir(
+    base_dir,
+    run_name,
+    plot_results_dir,
+    version,
+    auto_increment=False,
+):
     """Return the directory used for a new run or a re-used existing run."""
     if plot_results_dir is None:
-        date_tag = datetime.now().strftime("%b%d").lower()
+        date_tag = current_date_tag()
         version_short = version.split("_")[0].lower()
-        results_date_dir = os.path.join(base_dir, "results", date_tag)
-        os.makedirs(results_date_dir, exist_ok=True)
+        results_root, run_label = resolve_run_location(
+            base_dir,
+            run_name,
+            default_folder="results",
+        )
+        results_date_dir = results_root / date_tag
+        results_date_dir.mkdir(parents=True, exist_ok=True)
         if auto_increment:
-            return resolve_unique_run_dir(results_date_dir, run_name, suffix=f"_{version_short}")
-        return os.path.join(results_date_dir, f"{run_name}_{version_short}")
-    return os.path.join(base_dir, plot_results_dir)
+            return resolve_unique_run_dir(results_date_dir, run_label, suffix=f"_{version_short}")
+        return str(results_date_dir / f"{run_label}_{version_short}")
+
+    plot_results_path = Path(plot_results_dir)
+    if plot_results_path.is_absolute():
+        return str(plot_results_path)
+    return str(Path(base_dir) / plot_results_path)
 
 
 def ensure_solver_built(version):
