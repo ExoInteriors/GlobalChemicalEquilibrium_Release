@@ -113,6 +113,7 @@ class GCEOrganizer:
         just_plots=False,
         plot_results_dir=None,
         axis_list=None,
+        verbose=True,
     ) -> None:
         self.run_name = run_name
         self.params = params
@@ -120,6 +121,7 @@ class GCEOrganizer:
         self.just_plots = just_plots
         self.plot_results_dir = plot_results_dir
         self.axis_list = axis_list
+        self.verbose = verbose
 
         self.start_time = time.time()
         self.base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -131,10 +133,12 @@ class GCEOrganizer:
 
     def ensure_build(self) -> None:
         """Build the selected solver version if needed."""
-        print(f"Solver build check started at {time.strftime('%H:%M')}.")
-        ensure_solver_built(self.version)
-        print(f"Solver build check completed at {time.strftime('%H:%M')}")
-        print(f"Time taken: {(time.time() - self.start_time) / 60} minutes.")
+        if self.verbose:
+            print(f"Solver build check started at {time.strftime('%H:%M')}.")
+        ensure_solver_built(self.version, verbose=self.verbose)
+        if self.verbose:
+            print(f"Solver build check completed at {time.strftime('%H:%M')}")
+            print(f"Time taken: {(time.time() - self.start_time) / 60} minutes.")
 
     def prepare_input_dir(self) -> None:
         """Resolve the run directory and reset it for a fresh non-plotting run."""
@@ -169,17 +173,23 @@ class GCEOrganizer:
             self.version,
             params=self.params,
             output_dir=self.input_dir,
+            verbose=self.verbose,
         )
 
     def copy_inputs(self) -> None:
         """Copy the solver executable and version-specific files into the run directory."""
-        copy_inputs(input_dir=self.input_dir, version=self.version)
+        copy_inputs(input_dir=self.input_dir, version=self.version, verbose=self.verbose)
 
     def solve(self) -> None:
         """Run the solver, findMin, and results collation steps."""
-        print("Running pipeline...")
-        self.solver_failures = run_all(expected_count=self.num_inputs, input_dir=self.input_dir)
-        self.findmin_failures = find_min(input_dir=self.input_dir)
+        if self.verbose:
+            print("Running pipeline...")
+        self.solver_failures = run_all(
+            expected_count=self.num_inputs,
+            input_dir=self.input_dir,
+            verbose=self.verbose,
+        )
+        self.findmin_failures = find_min(input_dir=self.input_dir, verbose=self.verbose)
         get_results(self.input_dir)
         if self.failures or self.solver_failures or self.findmin_failures:
             print(

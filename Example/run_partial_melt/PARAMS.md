@@ -47,6 +47,12 @@ run_name="/path/to/results_partial/test" # /path/to/results_partial/YYYYMMDD/tes
 Set `False` for a normal run. Set `True` to skip solving and rebuild plots from
 an existing partial-melt results directory.
 
+### `verbose`
+
+Set `False` to hide low-level solver and `Gibbs.py` output during the upstream
+full-melt run and each partial-melt step. The default is `True`, which preserves
+the full solver output.
+
 ### `plot_results_dir`
 
 Existing partial-melt results directory used when `just_plots=True`. Example:

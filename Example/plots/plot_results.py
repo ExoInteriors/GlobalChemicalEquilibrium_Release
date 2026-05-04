@@ -2,6 +2,9 @@
 import gc
 import os
 
+from .helpers.matplotlib_config import configure_matplotlib_cache
+
+configure_matplotlib_cache()
 import matplotlib
 matplotlib.use("Agg")  # avoid GUI and reduce memory
 import pandas as pd

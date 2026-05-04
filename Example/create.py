@@ -16,7 +16,7 @@ from tools.constants import repo_root
 # Read input
 # ---------------------------------
 
-def create(version, params=None, output_dir=None):
+def create(version, params=None, output_dir=None, verbose=True):
     """Create input files for GEC simulation.
     
     Args:
@@ -27,10 +27,11 @@ def create(version, params=None, output_dir=None):
     """
     sulfur_enabled = ("Sulfur" in version)  # matches Sulfur_Version AND Sulfur_Nitrogen_Version
     nitrogen_enabled = ("Nitrogen" in version)
-    print("# -------------------------------------------")
-    print("# Calculate Input for GEC")
-    print(f"# -> {version} Version")
-    print("# -------------------------------------------")
+    if verbose:
+        print("# -------------------------------------------")
+        print("# Calculate Input for GEC")
+        print(f"# -> {version} Version")
+        print("# -------------------------------------------")
 
 
     ###################################################################################
@@ -239,7 +240,8 @@ def create(version, params=None, output_dir=None):
                                             
                                             # create the folder
                                             os.makedirs(folder)
-                                            print(f"print here: {folder}")
+                                            if verbose:
+                                                print(f"Created input folder: {folder}")
 
                                             # save parameters in database
                                             database.append({
@@ -304,7 +306,8 @@ def create(version, params=None, output_dir=None):
                                             nOtoadd = Mwater / (mu_O + 2.* mu_H) # moles of water to add
                                             nO = nO + nOtoadd
                                             nH = nOtoadd * 2.0 + nH# 
-                                            print("nO", nO)
+                                            if verbose:
+                                                print("nO", nO)
 
                                             M_withoutH = Mwater + Mtmp
                                             MprimH2 = M_withoutH * iHHe / (1. - iHHe) # MprimH2 fakeMass
@@ -319,13 +322,15 @@ def create(version, params=None, output_dir=None):
                                                 NSadd = (itarSH * nH_prim) if sulfur_enabled else 0.0
                                                 nS = nS + NSadd
 
-                                            print("nO", nO)
-                                            print("nH", nH)
+                                            if verbose:
+                                                print("nO", nO)
+                                                print("nH", nH)
 
                                             #stellar C/O is itarCO
 
-                                            print(f"nSi: {nSi}, nO: {nO}, nMg: {nMg}, nFe: {nFe}, nNa: {nNa}, nC: {nC}, nS: {nS}, nN: {nN}, nH: {nH}")
-                                            print(f"C/O: {nC/nO}, C/H: {nC/nH}, O/Si: {nO/nSi}, O/H: {nO/nH}, water mass frac Eqv: {ifWater}, H2 mass frac equiv: {iHHe}")
+                                            if verbose:
+                                                print(f"nSi: {nSi}, nO: {nO}, nMg: {nMg}, nFe: {nFe}, nNa: {nNa}, nC: {nC}, nS: {nS}, nN: {nN}, nH: {nH}")
+                                                print(f"C/O: {nC/nO}, C/H: {nC/nH}, O/Si: {nO/nSi}, O/H: {nO/nH}, water mass frac Eqv: {ifWater}, H2 mass frac equiv: {iHHe}")
 
                                             if(l == 1):
                                                 f2 = open(f"{mainfolder}/parametersAll.dat", "w")
@@ -563,17 +568,20 @@ def create(version, params=None, output_dir=None):
     if f2:
         f2.close()
 
-    print("number of inputs created:", l)
+    if verbose:
+        print("number of inputs created:", l)
     if failures:
         print(f"{len(failures)} case(s) failed: {', '.join(failures)}")
 
     df = pd.DataFrame(database)
-    print(df)
+    if verbose:
+        print(df)
     df.to_csv(mainfolder+"/summary_chem_input_GEC.csv", index=False)
 
-    print("# -------------------------------------------")
-    print("# Input stored!")
-    print("# -------------------------------------------")
+    if verbose:
+        print("# -------------------------------------------")
+        print("# Input stored!")
+        print("# -------------------------------------------")
 
     return l, failures
 

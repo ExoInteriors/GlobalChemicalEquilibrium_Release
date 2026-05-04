@@ -15,7 +15,7 @@ runpy.run_path(str(REPO_ROOT / "Gibbs.py"), run_name="__main__")
 """
 
 
-def copy_inputs(input_dir, version='Sulfur_Version'):
+def copy_inputs(input_dir, version='Sulfur_Version', verbose=True):
     """
     Copy solver artifacts (solver, param.dat, Gibbs.dat, Gibbs.py) into each generated case folder.
     """
@@ -35,7 +35,8 @@ def copy_inputs(input_dir, version='Sulfur_Version'):
         param_lines = pf.readlines()
 
     for s in sorted(subfolders):
-        print(s)
+        if verbose:
+            print(s)
         shutil.copy(solver_src, os.path.join(s, 'solver'))
         target_param = os.path.join(s, 'param.dat')
         with open(target_param, 'w', encoding="utf-8") as out:

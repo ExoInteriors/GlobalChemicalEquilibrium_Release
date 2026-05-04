@@ -84,6 +84,12 @@ collect results, and generate plots.
 Set `True` to skip solver work and regenerate plots from an existing results
 directory. When `just_plots=True`, also set `plot_results_dir`.
 
+### `verbose`
+
+Set `False` to hide per-case solver output, including the temperature arrays
+printed when the solver calls `Gibbs.py`. The default is `True`, which preserves
+the full solver output.
+
 ### `plot_results_dir`
 
 Path to an existing results directory, relative to the repository root, used

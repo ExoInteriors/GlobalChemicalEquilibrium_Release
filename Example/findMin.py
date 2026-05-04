@@ -2,7 +2,7 @@ import os
 import numpy as np
 from tools.constants import repo_root
 
-def find_min(input_dir=None):
+def find_min(input_dir=None, verbose=True):
 	"""Find the minimum chi^2 solution from each case's output.dat.
 
 	Writes min.dat (best-fit row per case) and chi.dat (chi^2 summary).
@@ -36,12 +36,14 @@ def find_min(input_dir=None):
 	with open(os.path.join(path, "chi.dat"), "w") as cf, \
 		 open(os.path.join(path, "min.dat"), "w") as mf:
 		print(header, end='', file=mf)
-		print(header, end='')
+		if verbose:
+			print(header, end='')
 		print("#subfolder chi^2 best_index", file=cf)
 
 		for i, s in enumerate(subfolders, start=1):
 			output_file = os.path.join(s, 'output.dat')
-			print(s)
+			if verbose:
+				print(s)
 
 			try:
 				data = np.loadtxt(output_file, unpack=True)
@@ -50,7 +52,8 @@ def find_min(input_dir=None):
 				chi2min = np.min(chi2)
 				ii = np.argmin(chi2)
 				print(i, chi2min, ii, file=cf)
-				print(i, chi2min, ii)
+				if verbose:
+					print(i, chi2min, ii)
 
 				for k in range(data.shape[0]):
 					if k < 2:

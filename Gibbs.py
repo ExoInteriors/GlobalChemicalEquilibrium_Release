@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import sys
 
 sys.path.append('..')
@@ -9,6 +10,16 @@ from numpy import log10
 
 R = 8.314462618153  # J /(mol K)
 log_to_ln = 2.302585093
+
+GIBBS_VERBOSE = (
+    __name__ == "__main__"
+    and os.environ.get("GCE_GIBBS_VERBOSE", "1").lower() not in ("0", "false", "no", "off")
+)
+
+
+def verbose_print(*args, **kwargs):
+    if GIBBS_VERBOSE:
+        print(*args, **kwargs)
 
 
 # Chebyshev helper (used by FeO1.5 MELTS fit)
@@ -41,7 +52,7 @@ def _chebyshev_poly(x, n):
 #define Temprature values in K
 if(len(sys.argv) <= 1):
 
-    print("No temperatures specified, use default values")
+    verbose_print("No temperatures specified, use default values")
 
     #TK = np.arange(1300, 3000, (3000.0 - 1300.0) / 199.0)
     TK = np.arange(1300, 4500, (4500.0 - 1300.0) / 199.0)
@@ -55,8 +66,8 @@ else:
         TK = np.append(TK, float(v))
 
 
-print("Calculate the Gibbs Energies for the temperatures: ")
-print(TK)
+verbose_print("Calculate the Gibbs Energies for the temperatures: ")
+verbose_print(TK)
 
 #------------------------------------------------------------------------------------------------
 #Calculate the Gibbs free energy according to 
@@ -1225,7 +1236,7 @@ GRT27 = G27/(R*TK)
 # The printed inices do not need to be consecutive.
 ############################################################################################################################
 
-print("Write Gibbs energies into file Gibbs.dat")
+verbose_print("Write Gibbs energies into file Gibbs.dat")
 
 gibbsFile = open("Gibbs.dat", "w")
 

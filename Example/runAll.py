@@ -98,14 +98,30 @@ def resolve_input_dir(
     return str(Path(base_dir) / plot_results_path)
 
 
-def ensure_solver_built(version):
+def ensure_solver_built(version, verbose=True):
     """Ensure the solver for one chemistry version is built and up to date."""
     version_dir = os.path.join(repo_root, version)
     if not os.path.isdir(version_dir):
         raise FileNotFoundError(f"Version folder {version_dir} does not exist")
-    print(f"Checking solver build for {version}...")
-    subprocess.run(["make"], cwd=version_dir, check=True)
-    print("Solver build is ready.")
+    if verbose:
+        print(f"Checking solver build for {version}...")
+        subprocess.run(["make"], cwd=version_dir, check=True)
+        print("Solver build is ready.")
+    else:
+        result = subprocess.run(
+            ["make"],
+            cwd=version_dir,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(f"Solver build failed for {version}")
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="")
+            result.check_returncode()
 
 
 def build_solver(version):
@@ -191,18 +207,35 @@ def infer_axis_list_from_data(input_dir):
 # Solver Runner
 # ---------------------------------------------------------------------------
 
-def run_solver(path: str):
+def run_solver(path: str, verbose=True):
     """Run the solver in one case directory and return `(path, returncode)`."""
-    print(path)
-    result = subprocess.run(["./solver"], cwd=path, check=False)
+    print('Running solver for case that will be processed in ', path)
+    if verbose:
+        print(path)
+        result = subprocess.run(["./solver"], cwd=path, check=False)
+    else:
+        result = subprocess.run(
+            ["./solver"],
+            cwd=path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(f"Solver failed in {path}")
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="")
     return path, result.returncode
 
 
-def run_all(expected_count=None, input_dir=None):
+def run_all(expected_count=None, input_dir=None, verbose=True):
     """Run the solver across all case folders in parallel.
 
     Returns a list of folder paths whose solver exited with a non-zero code.
     """
+    print("Running all the cases")
     input_dir = input_dir or os.path.join(repo_root, "input_Folder")
     subfolders = sorted(entry.path for entry in os.scandir(input_dir) if entry.is_dir())
 
@@ -211,14 +244,14 @@ def run_all(expected_count=None, input_dir=None):
 
     max_processes = max(1, multiprocessing.cpu_count() - 2)
     with multiprocessing.Pool(processes=max_processes) as pool:
-        results = pool.map(run_solver, subfolders)
+        results = pool.starmap(run_solver, [(path, verbose) for path in subfolders])
 
     failures = [path for path, returncode in results if returncode != 0]
     if failures:
         print(f"{len(failures)} solver failure(s):")
         for failed_path in failures:
             print(f"  FAILED: {failed_path}")
-    else:
+    elif verbose:
         print(f"All {len(results)} cases completed successfully.")
 
     return failures

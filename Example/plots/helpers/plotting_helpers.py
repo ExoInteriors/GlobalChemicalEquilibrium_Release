@@ -4,6 +4,9 @@ from pathlib import Path
 import math
 import os
 
+from .matplotlib_config import configure_matplotlib_cache
+
+configure_matplotlib_cache()
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

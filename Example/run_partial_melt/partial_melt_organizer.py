@@ -8,6 +8,7 @@ Finally, it will plot the results.
 '''
 
 from pathlib import Path
+import os
 import subprocess
 from dataclasses import dataclass, field
 import sys
@@ -58,7 +59,8 @@ class PartialMeltParams:
 
 class PartialMeltOrganizer:
     def __init__(self, *, params, run_name: str, just_plots: bool = False, plot_results_dir=None, axis_list=None, 
-                full_melt_results_dir=None, version_full_melt: str = "Sulfur_Nitrogen_Version") -> None:
+                full_melt_results_dir=None, version_full_melt: str = "Sulfur_Nitrogen_Version",
+                verbose=True) -> None:
         self.params = params
         self.run_name = run_name
         self.just_plots = just_plots
@@ -66,6 +68,7 @@ class PartialMeltOrganizer:
         self.axis_list = axis_list
         self.full_melt_results_dir = full_melt_results_dir
         self.version_full_melt = version_full_melt
+        self.verbose = verbose
 
         self.base_dir = Path(__file__).resolve().parents[2]
         self.base_results_dir = self.base_dir / "results"
@@ -98,11 +101,30 @@ class PartialMeltOrganizer:
         If not, just use the existing solver."""
         version_dir = Path(repo_root) / self.partial_melt_version
         selected_equations_file = version_dir / "No_Refractory_Gas_Version" / "Equations.py" if self.reduced_gas_mode else version_dir / "Equations.py"
-        print(f"Rebuilding solver for {self.partial_melt_version} using {selected_equations_file}...")
+        if self.verbose:
+            print(f"Rebuilding solver for {self.partial_melt_version} using {selected_equations_file}...")
         build_start = time.perf_counter()
-        subprocess.run(["make", "clean"], cwd=version_dir, check=False)
-        subprocess.run(["make", f"EQUATIONS_FILE={str(selected_equations_file)}"], cwd=version_dir, check=True)
-        print(f"Build complete in {(time.perf_counter() - build_start) / 60:.3f} minutes.")
+        if self.verbose:
+            subprocess.run(["make", "clean"], cwd=version_dir, check=False)
+            subprocess.run(["make", f"EQUATIONS_FILE={str(selected_equations_file)}"], cwd=version_dir, check=True)
+            print(f"Build complete in {(time.perf_counter() - build_start) / 60:.3f} minutes.")
+        else:
+            subprocess.run(["make", "clean"], cwd=version_dir, check=False, capture_output=True, text=True)
+            result = subprocess.run(
+                ["make", f"EQUATIONS_FILE={str(selected_equations_file)}"],
+                cwd=version_dir,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                print(f"Partial-melt solver build failed for {self.partial_melt_version}")
+                if result.stdout:
+                    print(result.stdout, end="")
+                if result.stderr:
+                    print(result.stderr, end="")
+                result.check_returncode()
+                result.check_returncode()
 
     # Preprocess
     def preprocess(self) -> None:
@@ -317,7 +339,7 @@ class PartialMeltOrganizer:
         next_step_state = self.prep_next_partial_melt(target_f_melt=target_f_melt, output_dir=case_dir)
         write_partial_melt_step_metadata(next_step_state, step_dir)
 
-        copy_inputs(input_dir=str(step_dir), version=self.partial_melt_version)
+        copy_inputs(input_dir=str(step_dir), version=self.partial_melt_version, verbose=self.verbose)
         for case_dir in sorted(step_dir.glob("input*")):
             values = {key.strip(): value.strip()
                 for raw_line in (case_dir / "chem_input.dat").read_text().splitlines()
@@ -337,12 +359,23 @@ class PartialMeltOrganizer:
                 (case_dir / "Gibbs.dat").write_text(cached_gibbs_text)
                 continue
 
-            subprocess.run([sys.executable, str(repo_root / "Gibbs.py"), *[f"{temp:.15g}" for temp in temperatures]], cwd=case_dir, check=True)
+            env = os.environ.copy()
+            env["GCE_GIBBS_VERBOSE"] = "1" if self.verbose else "0"
+            subprocess.run(
+                [sys.executable, str(repo_root / "Gibbs.py"), *[f"{temp:.15g}" for temp in temperatures]],
+                cwd=case_dir,
+                check=True,
+                env=env,
+            )
             cached_gibbs_text = (case_dir / "Gibbs.dat").read_text()
             self.partial_melt_gibbs_cache[temperatures] = cached_gibbs_text
 
-        solver_failures = run_all(expected_count=len(list(step_dir.glob("input*"))), input_dir=str(step_dir))
-        findmin_failures = find_min(input_dir=str(step_dir))
+        solver_failures = run_all(
+            expected_count=len(list(step_dir.glob("input*"))),
+            input_dir=str(step_dir),
+            verbose=self.verbose,
+        )
+        findmin_failures = find_min(input_dir=str(step_dir), verbose=self.verbose)
         get_partial_melt_results(step_dir)
         if solver_failures or findmin_failures:
             raise RuntimeError(f"Partial-melt step f_melt={target_f_melt} failed with {len(solver_failures)} solver \
