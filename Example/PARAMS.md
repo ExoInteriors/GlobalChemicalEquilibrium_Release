@@ -93,11 +93,6 @@ when replotting. Example:
 plot_results_dir="results/20260504/testy_sulfur"
 ```
 
-### `only_sulfur_plots`
-
-Controls plot selection. With `True`, the plotting step focuses on the
-sulfur-specific plot set. With `False`, it also runs the broader plot suite.
-
 ### `axis_list`
 
 Optional explicit list of plot axes. Usually leave this as `None`; the pipeline

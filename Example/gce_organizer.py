@@ -112,7 +112,6 @@ class GCEOrganizer:
         version="Sulfur_Version",
         just_plots=False,
         plot_results_dir=None,
-        only_sulfur_plots=True,
         axis_list=None,
     ) -> None:
         self.run_name = run_name
@@ -120,7 +119,6 @@ class GCEOrganizer:
         self.version = version
         self.just_plots = just_plots
         self.plot_results_dir = plot_results_dir
-        self.only_sulfur_plots = only_sulfur_plots
         self.axis_list = axis_list
 
         self.start_time = time.time()
@@ -197,6 +195,5 @@ class GCEOrganizer:
         plot_results(
             self.input_dir,
             version=self.version,
-            only_sulfur_plots=self.only_sulfur_plots,
             axis_list=self.axis_list,
         )

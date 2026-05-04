@@ -19,7 +19,6 @@ def run_gce(
     version="Sulfur_Version",
     just_plots=False,
     plot_results_dir=None,
-    only_sulfur_plots=True,
     axis_list=None,
 ):
     """Run the full GCE workflow from build check through plotting."""
@@ -29,7 +28,6 @@ def run_gce(
         version=version,
         just_plots=just_plots,
         plot_results_dir=plot_results_dir,
-        only_sulfur_plots=only_sulfur_plots,
         axis_list=axis_list,
     )
     print(f"Started pipeline at {datetime.now().strftime('%H:%M')}")

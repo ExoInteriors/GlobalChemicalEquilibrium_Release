@@ -492,5 +492,5 @@ def plot_partial_melt(chain_root: Path, version: str, axis_list=None) -> None:
     """Rebuild chain-root aggregate tables and rerun combined plotting."""
     rebuild_partial_melt_chain_tables(chain_root)
     resolved_axis_list = PARTIAL_MELT_PLOT_AXIS_LIST.copy() if axis_list is None else list(axis_list)
-    plot_results(chain_root, version=version, only_sulfur_plots=False, axis_list=resolved_axis_list, partial_melt=True)
+    plot_results(chain_root, version=version, axis_list=resolved_axis_list, partial_melt=True)
     print(f"Replotted partial-melt results: {chain_root}")
