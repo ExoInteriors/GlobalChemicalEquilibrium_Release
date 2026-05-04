@@ -166,6 +166,7 @@ def _plot_partial_melt_results(df, path, only_sulfur_plots=False, axis_list=None
     partial_v_axis.plot_pstd_vs_actual_solid(df, path)
     partial_v_axis.plot_mantle_fo2_proxy_vs_actual_solid(df, path)
     partial_v_axis.plot_mantle_delta_iw_silicate_vs_active_melt(df, path)
+    partial_v_axis.plot_fo2_vs_active_melt(df, path)
 
     for axis_key in axis_list:
         df_axis = axis_dataframe(df, axis_key)

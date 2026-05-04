@@ -12,7 +12,7 @@ from Example.plots.helpers.plotting_helpers import apply_partial_melt_axis, axis
                                                 plot_panels_or_single, plot_partial_melt_markers, save_axis_figure, \
                                                 set_axis_x_limits, add_partial_melt_gce_marker_label, \
                                                 apply_partial_melt_percent_axis
-from tools.calc_fO2 import get_delta_IW_from_silicate_FeO_FeO15
+from tools.calc_fO2 import get_delta_IW_from_silicate_FeO_FeO15, log10_fO2_from_silicate_FeO_FeO15
 
 
 VOLATILE_SPECIES = [species for species in SILICATE_COLUMNS if species in VOLATILE_SILICATE_COLUMNS]
@@ -258,6 +258,67 @@ def plot_mantle_delta_iw_silicate_vs_active_melt(df, path):
     ax.set_box_aspect(1)
     _ensure_panel_axes_visible(ax)
     save_axis_figure(fig, path, "f_melt", "mantle_delta_iw_silicate_vs_active_melt")
+
+
+def plot_fo2_vs_active_melt(df, path):
+    """Plot log10(fO2) from the silicate FeO/FeO1.5 equilibrium against active melt remaining.
+
+    Uses the FeO <-> FeO1.5 redox equilibrium in the silicate (consistent with
+    plot_mantle_delta_iw_silicate_vs_active_melt) so no co-existing metal is required.
+    """
+    if df is None or df.empty:
+        return
+    required = {"T_SME", "FeO_silicate", "FeO15_silicate"}
+    if not required.issubset(df.columns):
+        return
+
+    x_vals = 100.0 - np.asarray(get_f_solid_series(df), dtype=float)
+    temperature_k = pd.to_numeric(df["T_SME"], errors="coerce").to_numpy(dtype=float)
+    feo = pd.to_numeric(df["FeO_silicate"], errors="coerce").to_numpy(dtype=float)
+    feo15 = pd.to_numeric(df["FeO15_silicate"], errors="coerce").to_numpy(dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
+        y_vals = log10_fO2_from_silicate_FeO_FeO15(temperature_k, feo, feo15)
+    valid = np.isfinite(x_vals) & np.isfinite(y_vals)
+    if not np.any(valid):
+        return
+
+    x_vals = x_vals[valid]
+    y_vals = y_vals[valid]
+    order = np.argsort(x_vals)
+    x_vals = x_vals[order]
+    y_vals = y_vals[order]
+
+    gce_row = get_partial_melt_plot_context(path, "f_melt")
+    gce_y_value = np.nan
+    if gce_row is not None:
+        pre_t = float(pd.to_numeric(gce_row.get("T_SME", np.nan), errors="coerce"))
+        pre_feo = float(pd.to_numeric(gce_row.get("FeO_silicate", np.nan), errors="coerce"))
+        pre_feo15 = float(pd.to_numeric(gce_row.get("FeO15_silicate", np.nan), errors="coerce"))
+        if np.isfinite(pre_t) and np.isfinite(pre_feo) and np.isfinite(pre_feo15):
+            gce_y_value = float(log10_fO2_from_silicate_FeO_FeO15(pre_t, pre_feo, pre_feo15))
+
+    partial_melt_x, partial_melt_y = first_partial_melt_point(x_vals, y_vals)
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    ax.plot(x_vals, y_vals, color="black", linewidth=2)
+    plot_partial_melt_markers(
+        ax,
+        color="black",
+        gce_y_axis=None if not np.isfinite(gce_y_value) else gce_y_value,
+        partial_melt_x_axis=partial_melt_x,
+        partial_melt_y_axis=partial_melt_y,
+    )
+    apply_partial_melt_axis(ax)
+    ax.set_xlabel(r"Active silicate melt remaining (\%)")
+    ax.set_ylabel(r"$\log_{10}(f_{\mathrm{O}_2})$ (bar)")
+    ax.set_title(r"$f_{\mathrm{O}_2}$ vs remaining melt")
+    y_min = np.min(y_vals)
+    y_max = np.max(y_vals)
+    if np.isfinite(y_min) and np.isfinite(y_max):
+        padding = 0.05 * max(y_max - y_min, 1.0)
+        ax.set_ylim(y_min - padding, y_max + padding)
+    ax.set_box_aspect(1)
+    _ensure_panel_axes_visible(ax)
+    save_axis_figure(fig, path, "f_melt", "fo2_vs_active_melt")
 
 
 def plot_silicate_volatile_refractory(df, gce_df, path):

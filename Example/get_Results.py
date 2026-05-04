@@ -2,6 +2,13 @@ import os
 import numpy as np
 import pandas as pd
 from tools.constants import repo_root
+from tools.calc_fO2 import (
+    log10_fO2_IW_hirschmann2021,
+    get_fO2_at_PT_from_IW_hirschmann2021,
+    get_delta_IW,
+    log10_fO2_from_silicate_FeO_FeO15,
+    get_delta_IW_from_silicate_FeO_FeO15,
+)
 
 def get_results(path=None):
 	if path is None:
@@ -352,6 +359,66 @@ def get_results(path=None):
 		print("", file = f)
 
 	f.close()
+
+	# -----------------------------------------------------------------
+	# Write fO2 summary file — all available calculation routes
+	# -----------------------------------------------------------------
+	n_FeO = FeO_silicate * Moles_silicate
+	n_Fe  = Fe_metal     * Moles_metal
+	has_metal    = (n_Fe  > 0) & (Moles_metal    > 0)
+	has_silicate = (n_FeO > 0) & (Moles_silicate > 0)
+
+	with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
+		# IW buffer at (P, T) — shared reference
+		log10_fO2_IW_arr = log10_fO2_IW_hirschmann2021(P_SME, T_SME)
+
+		# Metal route: Fe(metal) + FeO(silicate) via IW buffer (Hirschmann 2021)
+		log10_fO2_metal_arr = np.where(
+			has_metal & has_silicate,
+			np.log10(get_fO2_at_PT_from_IW_hirschmann2021(P_SME, T_SME, n_FeO, Moles_silicate, n_Fe, Moles_metal)),
+			np.nan,
+		)
+		delta_IW_metal_arr = np.where(
+			has_metal & has_silicate,
+			get_delta_IW(P_SME, T_SME, n_FeO, Moles_silicate, n_Fe, Moles_metal),
+			np.nan,
+		)
+
+		# Silicate route: FeO / FeO1.5 equilibrium in silicate (no metal required)
+		has_feo15 = "FeO15_silicate" in df_result.columns
+		if has_feo15:
+			feo15_arr = df_result["FeO15_silicate"].to_numpy()[:S]
+			log10_fO2_silicate_arr = log10_fO2_from_silicate_FeO_FeO15(T_SME, FeO_silicate, feo15_arr)
+			delta_IW_silicate_arr  = get_delta_IW_from_silicate_FeO_FeO15(P_SME, T_SME, FeO_silicate, feo15_arr)
+		else:
+			log10_fO2_silicate_arr = np.full(S, np.nan)
+			delta_IW_silicate_arr  = np.full(S, np.nan)
+
+	def _fmt(val):
+		return "nan" if not np.isfinite(val) else "%12.10g" % val
+
+	fo2_filename = "%s/fO2_summary.dat" % path
+	fo2_file = open(fo2_filename, "w")
+	print(
+		"#index Planetmass T_AMOI T_SME P_SME "
+		"log10_fO2_IW "
+		"log10_fO2_metal delta_IW_metal "
+		"log10_fO2_silicate delta_IW_silicate",
+		file=fo2_file,
+	)
+	for i in range(S):
+		print("%05d " % i, end="", file=fo2_file)
+		print("%12.10g " % M[i], end="", file=fo2_file)
+		print("%12.10g " % T_AMOI[i], end="", file=fo2_file)
+		print("%12.10g " % T_SME[i], end="", file=fo2_file)
+		print("%12.10g " % P_SME[i], end="", file=fo2_file)
+		print("%s " % _fmt(log10_fO2_IW_arr[i]), end="", file=fo2_file)
+		print("%s " % _fmt(log10_fO2_metal_arr[i]), end="", file=fo2_file)
+		print("%s " % _fmt(delta_IW_metal_arr[i]), end="", file=fo2_file)
+		print("%s " % _fmt(log10_fO2_silicate_arr[i]), end="", file=fo2_file)
+		print("%s " % _fmt(delta_IW_silicate_arr[i]), end="", file=fo2_file)
+		print("", file=fo2_file)
+	fo2_file.close()
 
 
 if __name__ == "__main__":
