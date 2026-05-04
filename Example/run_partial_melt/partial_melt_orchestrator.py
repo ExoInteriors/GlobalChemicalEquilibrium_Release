@@ -42,10 +42,10 @@ from Example.gce_orchestrator import GCEParams
 @dataclass
 class PartialMeltParams:
     # parameters to run full GCE with
-    full_melt_params: GCEParams = GCEParams(
+    full_melt_params: GCEParams = field(default_factory=lambda: GCEParams(
         T_AMOI_array=np.array([2500.]),
         T_SME_array=np.array([3000.]),
-    )
+    ))
     f_melt_stop: float = 0.05 # what fraction of melt do you stop at?
     f_melt_step: float = 0.05 # 90% melted, 80% melted, etc. can change this to change the step size
     partial_start_t_sme: float = 2000.0  # temperature at which partial melt is happening
