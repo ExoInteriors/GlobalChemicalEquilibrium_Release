@@ -3,7 +3,7 @@ from sympy import log
 import importlib
 import sys
 
-sys.path.append('..')
+sys.path.append('../src')
 
 read_Molecular_Weight = importlib.import_module('read_Molecular_Weight')
 
